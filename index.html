@@ -211,14 +211,30 @@
 
   .empty-state { color: var(--text-body); font-size: 14px; padding: 24px 0; }
 
-  /* ---------- Discover: restaurant detail ---------- */
-  #discoverDetailView { display: none; }
-
-  .back-btn {
-    background: none; border: none; cursor: pointer; font-size: 13px; font-weight: 600;
-    color: var(--text-secondary); padding: 0; margin-bottom: 28px;
+  /* ---------- Restaurant modal ---------- */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 300;
+    background: rgba(41, 35, 30, 0.5);
+    display: none; align-items: flex-start; justify-content: center;
+    padding: 64px 24px; overflow-y: auto;
+    opacity: 0; transition: opacity 0.25s ease;
   }
-  .back-btn:hover { color: var(--accent-dark); }
+  .modal-overlay.open { display: flex; opacity: 1; }
+  body.modal-open { overflow: hidden; }
+
+  .modal-card {
+    background: var(--bg); border: 1px solid var(--border);
+    width: min(640px, 100%); padding: 44px; position: relative;
+  }
+  @media (max-width: 640px) { .modal-card { padding: 28px; } }
+
+  .modal-close {
+    position: absolute; top: 20px; right: 20px;
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+    background: none; border: 1px solid var(--border); cursor: pointer;
+    color: var(--text-secondary); transition: 0.15s;
+  }
+  .modal-close:hover { color: var(--text); border-color: var(--accent); }
 
   .restaurant-header { padding-bottom: 24px; margin-bottom: 24px; border-bottom: 1px solid var(--border); }
   .restaurant-header .kicker { margin-bottom: 10px; }
@@ -399,17 +415,6 @@
         <div id="featuredWrap"></div>
         <div class="card-grid" id="restaurantGrid"></div>
       </div>
-
-      <div id="discoverDetailView">
-        <button class="back-btn" id="backToList">← 목록으로</button>
-        <div class="restaurant-header" id="restaurantHeader"></div>
-        <div class="trust-filter">
-          <button class="chip active" data-filter="all">전체</button>
-          <button class="chip" data-filter="visited">직접 방문만</button>
-          <button class="chip" data-filter="sponsored">협찬 표시</button>
-        </div>
-        <div class="review-list" id="detailReviewList"></div>
-      </div>
     </div>
   </section>
 
@@ -500,11 +505,28 @@
 
 </main>
 
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-card" id="modalCard">
+    <button class="modal-close" id="modalClose" aria-label="닫기">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 5 L19 19 M19 5 L5 19" stroke-linecap="round"/></svg>
+    </button>
+    <div class="restaurant-header" id="restaurantHeader"></div>
+    <div class="trust-filter">
+      <button class="chip active" data-filter="all">전체</button>
+      <button class="chip" data-filter="visited">직접 방문만</button>
+      <button class="chip" data-filter="sponsored">협찬 표시</button>
+    </div>
+    <div class="review-list" id="detailReviewList"></div>
+  </div>
+</div>
+
 <footer>
   <span>© 2026 MISIK</span>
   <span>Discover · Trust · Archive · Personalize</span>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/Flip.min.js"></script>
 <script>
   // ---------- Nav ----------
   const navBtns = document.querySelectorAll('.side-nav-btn');
@@ -518,7 +540,7 @@
   navBtns.forEach(btn => btn.addEventListener('click', () => scrollToTab(btn.dataset.tab)));
   document.getElementById('logoLink').addEventListener('click', (e) => {
     e.preventDefault();
-    showGridView();
+    closeModal();
     scrollToTab('discover');
   });
 
@@ -584,8 +606,6 @@
   const categorySelect = document.getElementById('categorySelect');
   const featuredWrap = document.getElementById('featuredWrap');
   const restaurantGrid = document.getElementById('restaurantGrid');
-  const gridView = document.getElementById('discoverGridView');
-  const detailView = document.getElementById('discoverDetailView');
 
   [...new Set(RESTAURANTS.map(r => r.region))].forEach(r => {
     const opt = document.createElement('option'); opt.value = r; opt.textContent = r;
@@ -681,33 +701,73 @@
   featuredWrap.addEventListener('click', (e) => {
     const card = e.target.closest('.featured');
     if (!card) return;
-    openDetail(Number(card.dataset.id));
+    openModal(card, Number(card.dataset.id));
   });
 
   restaurantGrid.addEventListener('click', (e) => {
     const card = e.target.closest('.rcard');
     if (!card) return;
-    openDetail(Number(card.dataset.id));
+    openModal(card, Number(card.dataset.id));
   });
+
+  // ---------- Restaurant modal (GSAP Flip grid → modal morph) ----------
+  gsap.registerPlugin(Flip);
+
+  const modalOverlay = document.getElementById('modalOverlay');
+  const modalCard = document.getElementById('modalCard');
 
   let currentRestaurantId = null;
   let detailTrustFilter = 'all';
+  let sourceCardEl = null;
 
-  function showGridView() {
-    gridView.style.display = 'block';
-    detailView.style.display = 'none';
-  }
-
-  function openDetail(id) {
+  function openModal(cardEl, id) {
     currentRestaurantId = id;
     detailTrustFilter = 'all';
-    document.querySelectorAll('#discoverDetailView .trust-filter .chip').forEach(c => c.classList.toggle('active', c.dataset.filter === 'all'));
-    gridView.style.display = 'none';
-    detailView.style.display = 'block';
-    renderDetail();
+    sourceCardEl = cardEl;
+    document.querySelectorAll('#modalCard .trust-filter .chip').forEach(c => c.classList.toggle('active', c.dataset.filter === 'all'));
+    renderModalReviews();
+
+    const state = Flip.getState(cardEl);
+    modalOverlay.classList.add('open');
+    document.body.classList.add('modal-open');
+
+    gsap.killTweensOf(modalCard);
+    Flip.from(state, {
+      targets: modalCard,
+      duration: 0.6,
+      ease: 'power3.inOut',
+      absolute: true,
+      scale: true,
+    });
   }
 
-  function renderDetail() {
+  function closeModal() {
+    if (!modalOverlay.classList.contains('open')) return;
+    const targetEl = sourceCardEl && sourceCardEl.isConnected ? sourceCardEl : featuredWrap;
+
+    gsap.killTweensOf(modalCard);
+    Flip.fit(modalCard, targetEl, {
+      duration: 0.5,
+      ease: 'power3.inOut',
+      scale: true,
+      absolute: true,
+      onComplete: () => {
+        modalOverlay.classList.remove('open');
+        document.body.classList.remove('modal-open');
+        gsap.set(modalCard, { clearProps: 'all' });
+      },
+    });
+  }
+
+  modalOverlay.addEventListener('click', (e) => {
+    if (e.target === modalOverlay) closeModal();
+  });
+  document.getElementById('modalClose').addEventListener('click', closeModal);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  function renderModalReviews() {
     const r = RESTAURANTS.find(x => x.id === currentRestaurantId);
     if (!r) return;
 
@@ -740,14 +800,12 @@
     `).join('') : '<div class="empty-state">조건에 맞는 리뷰가 없습니다.</div>';
   }
 
-  document.getElementById('backToList').addEventListener('click', showGridView);
-
-  document.querySelectorAll('#discoverDetailView .trust-filter .chip').forEach(chip => {
+  document.querySelectorAll('#modalCard .trust-filter .chip').forEach(chip => {
     chip.addEventListener('click', () => {
-      document.querySelectorAll('#discoverDetailView .trust-filter .chip').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('#modalCard .trust-filter .chip').forEach(c => c.classList.remove('active'));
       chip.classList.add('active');
       detailTrustFilter = chip.dataset.filter;
-      renderDetail();
+      renderModalReviews();
     });
   });
 
