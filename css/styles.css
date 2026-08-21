@@ -1,20 +1,20 @@
 :root {
   color-scheme: light;
-  --bg: #FFFFFF;
-  --bg-soft: #F7F7F7;
-  --text: #222222;
-  --text-body: #484848;
-  --text-secondary: #717171;
-  --accent: #FF385C;
-  --accent-light: #FF7088;
-  --accent-dark: #D70466;
-  --border: #DDDDDD;
-  --card: #FFFFFF;
-  --shadow-card: 0 6px 16px rgba(0, 0, 0, 0.08);
-  --shadow-card-hover: 0 10px 24px rgba(0, 0, 0, 0.14);
-  --radius: 14px;
-  --serif: -apple-system, BlinkMacSystemFont, 'Pretendard Variable', 'Inter', sans-serif;
-  --serif-en: -apple-system, BlinkMacSystemFont, 'Pretendard Variable', 'Inter', sans-serif;
+  --bg: #F5F3EE;
+  --bg-soft: #EBE7DC;
+  --text: #1E211D;
+  --text-body: #4C4E48;
+  --text-secondary: #83836F;
+  --accent: #647C8C;
+  --accent-light: #8CA1AE;
+  --accent-dark: #4E6472;
+  --border: #DAD5CA;
+  --card: #FBFAF6;
+  --shadow-card: 0 6px 16px rgba(30, 33, 29, 0.07);
+  --shadow-card-hover: 0 10px 26px rgba(30, 33, 29, 0.12);
+  --radius: 10px;
+  --serif: 'Fraunces', 'Noto Serif KR', -apple-system, BlinkMacSystemFont, 'Pretendard Variable', serif;
+  --serif-en: 'Fraunces', 'Noto Serif KR', serif;
   --sans: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
   --sidebar-w: 220px;
 }
@@ -77,6 +77,9 @@ button { font-family: inherit; }
     position: static; width: 100%; height: auto;
     flex-direction: row; align-items: center; justify-content: space-between;
     padding: 14px 20px; border-right: none; border-bottom: 1px solid var(--border); gap: 12px;
+    /* 모바일에서는 fixed가 풀려 일반 흐름에 들어오므로, 스냅 컨테이너의 유효한
+       시작 지점으로 등록해 로드 직후 첫 탭 패널로 건너뛰어 스냅되는 것을 막는다. */
+    scroll-snap-align: start;
   }
   .logo { font-size: 16px; padding-left: 0; }
   .side-nav { flex-direction: row; gap: 4px; }
@@ -256,9 +259,9 @@ footer {
 .rcard-photo svg { width: 42px; height: 42px; transition: transform 0.25s ease; }
 .rcard-badge {
   position: absolute; top: 10px; left: 10px;
-  background: rgba(255, 255, 255, 0.92); color: var(--text);
+  background: rgba(251, 250, 246, 0.92); color: var(--text);
   font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
-  font-variant-numeric: tabular-nums; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  font-variant-numeric: tabular-nums; box-shadow: 0 2px 6px rgba(30, 33, 29, 0.12);
 }
 .rcard-photo--tall { height: 168px; }
 
@@ -290,7 +293,7 @@ footer {
 /* ---------- Restaurant modal ---------- */
 .modal-overlay {
   position: fixed; inset: 0; z-index: 300;
-  background: rgba(34, 34, 34, 0.6);
+  background: rgba(30, 33, 29, 0.55);
   display: none; align-items: flex-start; justify-content: center;
   padding: 64px 24px; overflow-y: auto;
   opacity: 0; transition: opacity 0.25s ease;
@@ -301,7 +304,7 @@ body.modal-open { overflow: hidden; }
 .modal-card {
   background: var(--card); border: 1px solid var(--border);
   width: min(640px, 100%); padding: 44px; position: relative;
-  border-radius: 20px; box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
+  border-radius: 16px; box-shadow: 0 16px 48px rgba(30, 33, 29, 0.16);
 }
 @media (max-width: 640px) { .modal-card { padding: 28px; border-radius: 16px; } }
 
@@ -487,6 +490,6 @@ body.modal-open { overflow: hidden; }
 .ai-result.show { display: block; }
 .sentiment-bar { height: 6px; background: var(--border); border-radius: 999px; overflow: hidden; display: flex; margin-top: 8px; }
 .sentiment-bar .pos { background: var(--accent); height: 100%; }
-.sentiment-bar .neg { background: #767676; height: 100%; }
+.sentiment-bar .neg { background: #9A9686; height: 100%; }
 .sentiment-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); margin-top: 6px; }
 .ai-summary { margin-top: 16px; font-size: 14px; padding-left: 16px; border-left: 2px solid var(--accent); color: var(--text-body); }

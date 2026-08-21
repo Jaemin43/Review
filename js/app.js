@@ -92,15 +92,16 @@ const ICON_PLATE = '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" s
 const CATEGORY_ICON = { '한식': ICON_BOWL, '중식': ICON_BOWL, '분식': ICON_BOWL, '일식': ICON_PLATE, '양식': ICON_PLATE, '카페': ICON_CUP };
 
 // Soft "listing photo" tint per category — stands in for a real photo since
-// this is mock data. Each pairing gets its own hue so the grid reads as a
-// varied set of listings rather than one flat accent color repeated.
+// this is mock data. Editorial mood keeps icon strokes to a single
+// slate-blue/charcoal tone (DESIGN.md §4); only the tint's warmth/lightness
+// shifts slightly per category so the grid still reads as varied listings.
 const CATEGORY_TONE = {
-  '한식': { bg: '#FDE3E9', fg: '#FF385C' },
-  '중식': { bg: '#FCEADB', fg: '#D97F3D' },
-  '분식': { bg: '#FCF0D6', fg: '#E0A72E' },
-  '일식': { bg: '#E1F3F1', fg: '#00A699' },
-  '양식': { bg: '#F1E6F0', fg: '#A15C8C' },
-  '카페': { bg: '#ECE6DC', fg: '#6B5B45' },
+  '한식': { bg: '#EFE8DA', fg: '#647C8C' },
+  '중식': { bg: '#E8E1D2', fg: '#647C8C' },
+  '분식': { bg: '#EEE6D8', fg: '#4E6472' },
+  '일식': { bg: '#E3E6DF', fg: '#4E6472' },
+  '양식': { bg: '#E9E3D8', fg: '#647C8C' },
+  '카페': { bg: '#E5DFD1', fg: '#1E211D' },
 };
 function categoryTone(cat) { return CATEGORY_TONE[cat] || { bg: 'var(--bg-soft)', fg: 'var(--accent)' }; }
 
@@ -412,7 +413,7 @@ document.getElementById('acClear').addEventListener('click', () => {
 
 // ---------- Personalize ----------
 const DEFAULT_CATEGORY_DIST = { '한식': 4, '일식': 2, '카페': 3, '양식': 2, '중식': 1, '분식': 1 };
-const DONUT_COLORS = ['#FF385C', '#E0A72E', '#00A699', '#A15C8C', '#333333', '#D8CDBA'];
+const DONUT_COLORS = ['#647C8C', '#B5745B', '#1E211D', '#94A39B', '#B79A5C', '#A8A296'];
 
 const WORDS = [
   { w: '재방문의사', s: 30 }, { w: '가성비', s: 24 }, { w: '분위기', s: 26 },
