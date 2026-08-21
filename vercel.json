@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/js/kakao-config.js", "destination": "/api/kakao-config" }
+  ]
+}
