@@ -84,6 +84,39 @@ button { font-family: inherit; }
   .side-nav-btn.active { border-bottom-color: var(--accent); }
 }
 
+/* ---------- Auth ---------- */
+.auth-corner {
+  position: fixed; top: 20px; right: 28px; z-index: 200;
+  display: flex; align-items: center; gap: 12px;
+}
+.auth-btn {
+  font-family: var(--sans); font-size: 13px; font-weight: 600;
+  padding: 9px 18px; border-radius: 999px; cursor: pointer; border: none;
+  background: var(--accent); color: #fff; transition: 0.2s;
+}
+.auth-btn:hover { background: var(--accent-dark); }
+.auth-btn.ghost { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); padding: 8px 16px; }
+.auth-btn.ghost:hover { color: var(--text); border-color: var(--text); background: var(--bg-soft); }
+
+.auth-user[hidden] { display: none; }
+.auth-user { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; color: var(--text); }
+
+@media (max-width: 760px) {
+  .auth-corner {
+    position: static; width: 100%; justify-content: center;
+    padding: 10px 20px; border-bottom: 1px solid var(--border);
+  }
+}
+
+.auth-modal-card { width: min(400px, 100%); }
+.auth-modal-title { font-family: var(--serif); font-size: 22px; font-weight: 800; letter-spacing: -0.01em; margin: 4px 0 26px; }
+.auth-form .field:nth-last-of-type(2) { margin-bottom: 24px; }
+.auth-actions { display: flex; gap: 10px; }
+.auth-actions .btn { flex: 1; text-align: center; }
+.auth-message { margin-top: 14px; font-size: 13px; color: var(--text-secondary); min-height: 18px; }
+.auth-message.error { color: #E5484D; }
+.auth-message.success { color: #2E9E5B; }
+
 /* ---------- Main shell ---------- */
 html { scroll-snap-type: y proximity; scroll-behavior: smooth; }
 .app-main { margin-left: var(--sidebar-w); max-width: 1160px; }

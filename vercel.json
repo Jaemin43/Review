@@ -1,5 +1,6 @@
 {
   "rewrites": [
-    { "source": "/js/kakao-config.js", "destination": "/api/kakao-config" }
+    { "source": "/js/kakao-config.js", "destination": "/api/kakao-config" },
+    { "source": "/js/supabase-config.js", "destination": "/api/supabase-config" }
   ]
 }
