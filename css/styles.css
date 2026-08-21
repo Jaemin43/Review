@@ -1,20 +1,20 @@
 :root {
   color-scheme: light;
-  --bg: #F5F3EE;
-  --bg-soft: #EBE7DC;
-  --text: #1E211D;
-  --text-body: #4C4E48;
-  --text-secondary: #83836F;
-  --accent: #647C8C;
-  --accent-light: #8CA1AE;
-  --accent-dark: #4E6472;
-  --border: #DAD5CA;
-  --card: #FBFAF6;
-  --shadow-card: 0 6px 16px rgba(30, 33, 29, 0.07);
-  --shadow-card-hover: 0 10px 26px rgba(30, 33, 29, 0.12);
-  --radius: 10px;
-  --serif: 'Fraunces', 'Noto Serif KR', -apple-system, BlinkMacSystemFont, 'Pretendard Variable', serif;
-  --serif-en: 'Fraunces', 'Noto Serif KR', serif;
+  --bg: #FFFFFF;
+  --bg-soft: #F7F6F3;
+  --text: #37352F;
+  --text-body: #454440;
+  --text-secondary: #787774;
+  --accent: #2383E2;
+  --accent-light: #5B9FE8;
+  --accent-dark: #1A6FC4;
+  --border: #E9E9E7;
+  --card: #FFFFFF;
+  --shadow-card: 0 1px 2px rgba(15, 15, 15, 0.05);
+  --shadow-card-hover: 0 3px 9px rgba(15, 15, 15, 0.10);
+  --radius: 8px;
+  --serif: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+  --serif-en: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
   --sans: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
   --sidebar-w: 220px;
 }
@@ -94,7 +94,7 @@ button { font-family: inherit; }
 }
 .auth-btn {
   font-family: var(--sans); font-size: 13px; font-weight: 600;
-  padding: 9px 18px; border-radius: 999px; cursor: pointer; border: none;
+  padding: 9px 18px; border-radius: 6px; cursor: pointer; border: none;
   background: var(--accent); color: #fff; transition: 0.2s;
 }
 .auth-btn:hover { background: var(--accent-dark); }
@@ -117,8 +117,8 @@ button { font-family: inherit; }
 .auth-actions { display: flex; gap: 10px; }
 .auth-actions .btn { flex: 1; text-align: center; }
 .auth-message { margin-top: 14px; font-size: 13px; color: var(--text-secondary); min-height: 18px; }
-.auth-message.error { color: #E5484D; }
-.auth-message.success { color: #2E9E5B; }
+.auth-message.error { color: #E03E3E; }
+.auth-message.success { color: #0F7B6C; }
 
 /* ---------- Main shell ---------- */
 html { scroll-snap-type: y proximity; scroll-behavior: smooth; }
@@ -165,7 +165,7 @@ footer {
 
 .masthead-filters {
   display: flex; align-items: stretch; gap: 0; flex-wrap: wrap;
-  background: var(--bg); border: 1px solid var(--border); border-radius: 999px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
   padding: 6px 8px; box-shadow: var(--shadow-card); width: fit-content;
 }
 .mf-item { display: inline-flex; flex-direction: column; justify-content: center; gap: 2px; padding: 6px 22px; }
@@ -186,7 +186,7 @@ footer {
 }
 .masthead-filters .mf-item:not(:last-child) { border-right: 1px solid var(--border); }
 @media (max-width: 760px) {
-  .masthead-filters { border-radius: 20px; width: 100%; }
+  .masthead-filters { border-radius: 10px; width: 100%; }
   .mf-item { padding: 8px 14px; }
 }
 
@@ -259,9 +259,9 @@ footer {
 .rcard-photo svg { width: 42px; height: 42px; transition: transform 0.25s ease; }
 .rcard-badge {
   position: absolute; top: 10px; left: 10px;
-  background: rgba(251, 250, 246, 0.92); color: var(--text);
+  background: rgba(255, 255, 255, 0.94); color: var(--text);
   font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
-  font-variant-numeric: tabular-nums; box-shadow: 0 2px 6px rgba(30, 33, 29, 0.12);
+  font-variant-numeric: tabular-nums; box-shadow: 0 2px 6px rgba(15, 15, 15, 0.12);
 }
 .rcard-photo--tall { height: 168px; }
 
@@ -293,7 +293,7 @@ footer {
 /* ---------- Restaurant modal ---------- */
 .modal-overlay {
   position: fixed; inset: 0; z-index: 300;
-  background: rgba(30, 33, 29, 0.55);
+  background: rgba(15, 15, 15, 0.45);
   display: none; align-items: flex-start; justify-content: center;
   padding: 64px 24px; overflow-y: auto;
   opacity: 0; transition: opacity 0.25s ease;
@@ -304,9 +304,9 @@ body.modal-open { overflow: hidden; }
 .modal-card {
   background: var(--card); border: 1px solid var(--border);
   width: min(640px, 100%); padding: 44px; position: relative;
-  border-radius: 16px; box-shadow: 0 16px 48px rgba(30, 33, 29, 0.16);
+  border-radius: 10px; box-shadow: 0 12px 32px rgba(15, 15, 15, 0.14);
 }
-@media (max-width: 640px) { .modal-card { padding: 28px; border-radius: 16px; } }
+@media (max-width: 640px) { .modal-card { padding: 28px; border-radius: 10px; } }
 
 .modal-close {
   position: absolute; top: 20px; right: 20px;
@@ -355,21 +355,21 @@ body.modal-open { overflow: hidden; }
 
 .sentiment-bar3 { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--bg-soft); }
 .sentiment-bar3 .seg { height: 100%; transition: width 0.4s ease; }
-.sentiment-bar3 .seg.pos { background: #2E9E5B; }
-.sentiment-bar3 .seg.neu { background: #E8B93A; }
-.sentiment-bar3 .seg.neg { background: #E5484D; }
+.sentiment-bar3 .seg.pos { background: #0F7B6C; }
+.sentiment-bar3 .seg.neu { background: #DFAB01; }
+.sentiment-bar3 .seg.neg { background: #E03E3E; }
 .sentiment-labels3 { display: flex; gap: 16px; margin-top: 8px; font-size: 12.5px; color: var(--text-body); }
 .sentiment-labels3 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
-.sentiment-labels3 .dot.pos { background: #2E9E5B; }
-.sentiment-labels3 .dot.neu { background: #E8B93A; }
-.sentiment-labels3 .dot.neg { background: #E5484D; }
+.sentiment-labels3 .dot.pos { background: #0F7B6C; }
+.sentiment-labels3 .dot.neu { background: #DFAB01; }
+.sentiment-labels3 .dot.neg { background: #E03E3E; }
 
 .keyword-cloud-wrap { margin-top: 20px; width: 100%; }
 .keyword-cloud-wrap canvas { width: 100%; max-width: 100%; display: block; }
 
 .ai-bubble {
   position: relative; margin-top: 20px; padding: 16px 18px;
-  background: var(--bg-soft); border-radius: 16px 16px 16px 4px;
+  background: var(--bg-soft); border-radius: 10px 10px 10px 3px;
   font-size: 13.5px; line-height: 1.6; color: var(--text);
 }
 .ai-bubble::before {
@@ -405,7 +405,7 @@ body.modal-open { overflow: hidden; }
 
 .btn {
   display: inline-block; font-family: var(--sans); font-size: 14px; font-weight: 600;
-  padding: 12px 24px; background: var(--accent); color: #fff; border: none; border-radius: 999px;
+  padding: 12px 24px; background: var(--accent); color: #fff; border: none; border-radius: 6px;
   cursor: pointer; transition: 0.2s; box-shadow: var(--shadow-card);
 }
 .btn:hover { background: var(--accent-dark); box-shadow: var(--shadow-card-hover); transform: translateY(-1px); }
@@ -416,7 +416,7 @@ body.modal-open { overflow: hidden; }
 .btn-save {
   display: inline-flex; align-items: center; gap: 6px;
   font-family: var(--sans); font-size: 13px; font-weight: 600;
-  padding: 10px 18px; border-radius: 999px; cursor: pointer;
+  padding: 10px 18px; border-radius: 6px; cursor: pointer;
   background: transparent; color: var(--text); border: 1px solid var(--border);
   transition: 0.2s;
 }
@@ -490,6 +490,6 @@ body.modal-open { overflow: hidden; }
 .ai-result.show { display: block; }
 .sentiment-bar { height: 6px; background: var(--border); border-radius: 999px; overflow: hidden; display: flex; margin-top: 8px; }
 .sentiment-bar .pos { background: var(--accent); height: 100%; }
-.sentiment-bar .neg { background: #9A9686; height: 100%; }
+.sentiment-bar .neg { background: #9B9A97; height: 100%; }
 .sentiment-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); margin-top: 6px; }
 .ai-summary { margin-top: 16px; font-size: 14px; padding-left: 16px; border-left: 2px solid var(--accent); color: var(--text-body); }

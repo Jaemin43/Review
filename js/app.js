@@ -92,16 +92,15 @@ const ICON_PLATE = '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" s
 const CATEGORY_ICON = { '한식': ICON_BOWL, '중식': ICON_BOWL, '분식': ICON_BOWL, '일식': ICON_PLATE, '양식': ICON_PLATE, '카페': ICON_CUP };
 
 // Soft "listing photo" tint per category — stands in for a real photo since
-// this is mock data. Editorial mood keeps icon strokes to a single
-// slate-blue/charcoal tone (DESIGN.md §4); only the tint's warmth/lightness
-// shifts slightly per category so the grid still reads as varied listings.
+// this is mock data. Colors come straight from Notion's own tag/select
+// palette so category badges read as genuine Notion tags.
 const CATEGORY_TONE = {
-  '한식': { bg: '#EFE8DA', fg: '#647C8C' },
-  '중식': { bg: '#E8E1D2', fg: '#647C8C' },
-  '분식': { bg: '#EEE6D8', fg: '#4E6472' },
-  '일식': { bg: '#E3E6DF', fg: '#4E6472' },
-  '양식': { bg: '#E9E3D8', fg: '#647C8C' },
-  '카페': { bg: '#E5DFD1', fg: '#1E211D' },
+  '한식': { bg: '#FAEBDD', fg: '#D9730D' }, // orange
+  '중식': { bg: '#FBE4E4', fg: '#E03E3E' }, // red
+  '분식': { bg: '#FBF3DB', fg: '#DFAB01' }, // yellow
+  '일식': { bg: '#DDEBF1', fg: '#0B6E99' }, // blue
+  '양식': { bg: '#EAE4F2', fg: '#6940A5' }, // purple
+  '카페': { bg: '#E9E5E3', fg: '#64473A' }, // brown
 };
 function categoryTone(cat) { return CATEGORY_TONE[cat] || { bg: 'var(--bg-soft)', fg: 'var(--accent)' }; }
 
@@ -413,7 +412,7 @@ document.getElementById('acClear').addEventListener('click', () => {
 
 // ---------- Personalize ----------
 const DEFAULT_CATEGORY_DIST = { '한식': 4, '일식': 2, '카페': 3, '양식': 2, '중식': 1, '분식': 1 };
-const DONUT_COLORS = ['#647C8C', '#B5745B', '#1E211D', '#94A39B', '#B79A5C', '#A8A296'];
+const DONUT_COLORS = ['#D9730D', '#E03E3E', '#DFAB01', '#0B6E99', '#6940A5', '#64473A'];
 
 const WORDS = [
   { w: '재방문의사', s: 30 }, { w: '가성비', s: 24 }, { w: '분위기', s: 26 },
