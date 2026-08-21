@@ -348,6 +348,7 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 5 L19 19 M19 5 L5 19" stroke-linecap="round"/></svg>
       </button>
       <div class="restaurant-header" id="ksReviewHeader"></div>
+      <div class="ai-analysis" id="ksAnalysisSection" style="display:none"></div>
       <div class="review-list" id="ksReviewList"></div>
     </div>
   `;
@@ -355,6 +356,7 @@
 
   const reviewHeader = document.getElementById('ksReviewHeader');
   const reviewList = document.getElementById('ksReviewList');
+  const analysisSection = document.getElementById('ksAnalysisSection');
 
   function openReviewOverlay() {
     reviewOverlay.classList.add('open');
@@ -416,10 +418,12 @@
 
   async function openReview(placeId, name, x, y) {
     openReviewOverlay();
+    hideAnalysisSection();
 
     const cached = getCachedReview(placeId);
     if (cached) {
       renderReview(name, cached);
+      maybeStartAnalysis(placeId, cached);
       return;
     }
 
@@ -432,10 +436,167 @@
       const data = await res.json();
       setCachedReview(placeId, data);
       renderReview(name, data);
+      maybeStartAnalysis(placeId, data);
     } catch (networkErr) {
       console.error('[kakao-search] 구글 리뷰 조회 실패', networkErr);
       reviewList.innerHTML = `<div class="empty-state">리뷰를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.</div>`;
     }
+  }
+
+  // ---------- AI 리뷰 분석 (Gemini) ----------
+  const AI_CACHE_KEY = 'misikAiAnalysisCache';
+  const WORDCLOUD_SRC = 'https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.js';
+
+  function loadAiCache() {
+    try {
+      const raw = localStorage.getItem(AI_CACHE_KEY);
+      const obj = raw ? JSON.parse(raw) : {};
+      return obj && typeof obj === 'object' ? obj : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function persistAiCache(cache) {
+    try {
+      localStorage.setItem(AI_CACHE_KEY, JSON.stringify(cache));
+    } catch (e) {
+      console.error('[kakao-search] AI 분석 캐시 저장 실패', e);
+    }
+  }
+
+  function getCachedAnalysis(placeId) {
+    return loadAiCache()[placeId];
+  }
+
+  function setCachedAnalysis(placeId, data) {
+    const cache = loadAiCache();
+    cache[placeId] = data;
+    persistAiCache(cache);
+  }
+
+  function hideAnalysisSection() {
+    analysisSection.style.display = 'none';
+    analysisSection.innerHTML = '';
+  }
+
+  function showAnalysisLoading() {
+    analysisSection.style.display = '';
+    analysisSection.innerHTML = `<div class="viz-title">AI 리뷰 분석</div><div class="empty-state">AI가 리뷰를 분석하는 중…</div>`;
+  }
+
+  function showAnalysisError(message) {
+    analysisSection.style.display = '';
+    analysisSection.innerHTML = `<div class="viz-title">AI 리뷰 분석</div><div class="empty-state">${escapeHTML(message)}</div>`;
+  }
+
+  let wordCloudLoadPromise = null;
+  function loadWordCloudLib() {
+    if (window.WordCloud) return Promise.resolve();
+    if (wordCloudLoadPromise) return wordCloudLoadPromise;
+    wordCloudLoadPromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = WORDCLOUD_SRC;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('워드클라우드 라이브러리를 불러오지 못했습니다.'));
+      document.head.appendChild(script);
+    });
+    return wordCloudLoadPromise;
+  }
+
+  async function renderWordCloud(keywords) {
+    const canvas = document.getElementById('ksKeywordCanvas');
+    if (!canvas || !keywords || keywords.length === 0) return;
+
+    try {
+      await loadWordCloudLib();
+    } catch (e) {
+      console.error('[kakao-search]', e);
+      return;
+    }
+
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = Math.max(280, Math.round(rect.width));
+    canvas.height = 200;
+
+    const colorByWord = {};
+    keywords.forEach((k) => { colorByWord[k.word] = k.context === 'negative' ? '#E5484D' : '#2E9E5B'; });
+
+    window.WordCloud(canvas, {
+      list: keywords.map((k) => [k.word, k.score]),
+      weightFactor: (size) => 9 + size * 3.4,
+      fontFamily: "'Pretendard Variable', -apple-system, sans-serif",
+      color: (word) => colorByWord[word] || '#2E9E5B',
+      backgroundColor: 'transparent',
+      rotateRatio: 0,
+      gridSize: 8,
+      shuffle: false
+    });
+  }
+
+  function renderAnalysis(data) {
+    const counts = data.sentimentCounts || { positive: 0, neutral: 0, negative: 0 };
+    const total = Math.max(1, (counts.positive || 0) + (counts.neutral || 0) + (counts.negative || 0));
+    const posPct = ((counts.positive || 0) / total) * 100;
+    const neuPct = ((counts.neutral || 0) / total) * 100;
+    const negPct = ((counts.negative || 0) / total) * 100;
+
+    analysisSection.style.display = '';
+    analysisSection.innerHTML = `
+      <div class="viz-title">AI 리뷰 분석</div>
+      <div class="sentiment-bar3">
+        <div class="seg pos" style="width:${posPct}%"></div>
+        <div class="seg neu" style="width:${neuPct}%"></div>
+        <div class="seg neg" style="width:${negPct}%"></div>
+      </div>
+      <div class="sentiment-labels3">
+        <span><span class="dot pos"></span>긍정 ${counts.positive || 0}</span>
+        <span><span class="dot neu"></span>보통 ${counts.neutral || 0}</span>
+        <span><span class="dot neg"></span>부정 ${counts.negative || 0}</span>
+      </div>
+      <div class="keyword-cloud-wrap"><canvas id="ksKeywordCanvas"></canvas></div>
+      <div class="ai-bubble">${escapeHTML(data.summary || '')}</div>
+    `;
+
+    renderWordCloud(data.keywords);
+  }
+
+  async function runAnalysis(placeId, placeName, reviews) {
+    showAnalysisLoading();
+    try {
+      const res = await fetch('/api/gemini-analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          placeName,
+          reviews: reviews.map((r) => ({ rating: r.rating, text: r.text }))
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        showAnalysisError((data && data.error) || 'AI 분석에 실패했습니다.');
+        return;
+      }
+      setCachedAnalysis(placeId, data);
+      renderAnalysis(data);
+    } catch (networkErr) {
+      console.error('[kakao-search] AI 분석 실패', networkErr);
+      showAnalysisError('AI 분석 요청에 실패했습니다.');
+    }
+  }
+
+  // 리뷰가 1개 이상 있을 때만 분석을 시도한다. 캐시가 있으면 즉시 렌더링, 없으면 자동으로 분석을 시작한다.
+  function maybeStartAnalysis(placeId, reviewData) {
+    if (!reviewData || reviewData.found === false || !reviewData.reviews || reviewData.reviews.length === 0) {
+      hideAnalysisSection();
+      return;
+    }
+    const cached = getCachedAnalysis(placeId);
+    if (cached) {
+      renderAnalysis(cached);
+      return;
+    }
+    runAnalysis(placeId, reviewData.name, reviewData.reviews);
   }
 
   // 카드 클릭(담기 버튼·카카오맵 링크 클릭은 제외) → 리뷰 열기

@@ -313,6 +313,34 @@ body.modal-open { overflow: hidden; }
 }
 .review-text { font-size: 13.5px; color: var(--text-body); margin-top: 12px; line-height: 1.6; }
 
+/* ---------- AI 리뷰 분석 (맛집 담기 탭 리뷰 오버레이) ---------- */
+.ai-analysis { padding-bottom: 24px; margin-bottom: 24px; border-bottom: 1px solid var(--border); }
+.ai-analysis .viz-title { margin-bottom: 14px; }
+
+.sentiment-bar3 { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--bg-soft); }
+.sentiment-bar3 .seg { height: 100%; transition: width 0.4s ease; }
+.sentiment-bar3 .seg.pos { background: #2E9E5B; }
+.sentiment-bar3 .seg.neu { background: #E8B93A; }
+.sentiment-bar3 .seg.neg { background: #E5484D; }
+.sentiment-labels3 { display: flex; gap: 16px; margin-top: 8px; font-size: 12.5px; color: var(--text-body); }
+.sentiment-labels3 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+.sentiment-labels3 .dot.pos { background: #2E9E5B; }
+.sentiment-labels3 .dot.neu { background: #E8B93A; }
+.sentiment-labels3 .dot.neg { background: #E5484D; }
+
+.keyword-cloud-wrap { margin-top: 20px; width: 100%; }
+.keyword-cloud-wrap canvas { width: 100%; max-width: 100%; display: block; }
+
+.ai-bubble {
+  position: relative; margin-top: 20px; padding: 16px 18px;
+  background: var(--bg-soft); border-radius: 16px 16px 16px 4px;
+  font-size: 13.5px; line-height: 1.6; color: var(--text);
+}
+.ai-bubble::before {
+  content: '✦'; color: var(--accent); font-size: 12px; font-weight: 700;
+  display: block; margin-bottom: 6px;
+}
+
 /* ---------- Archive ---------- */
 .panel-box { border-top: 1px solid var(--border); padding-top: 32px; }
 
