@@ -147,6 +147,10 @@ footer {
 }
 @media (max-width: 760px) { .tab-panel { padding: 80px 20px 48px; } }
 
+/* 감성분석 섹션 제거로 콘텐츠가 한 화면보다 짧아져, 100vh 중앙 정렬 때문에
+   탭 이동 시 상단에 빈 공간만 보이던 문제를 막기 위해 이 섹션만 콘텐츠 높이로 둔다. */
+#tab-personalize { min-height: auto; justify-content: flex-start; }
+
 .section-inner {
   opacity: 0; transform: translateY(28px);
   transition: opacity 0.7s ease, transform 0.7s ease;
@@ -479,17 +483,3 @@ body.modal-open { overflow: hidden; }
 
 .wordcloud { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; min-height: 150px; align-content: center; }
 .wordcloud span { font-family: var(--serif); }
-
-.ai-box { border-top: 1px solid var(--border); padding-top: 32px; }
-.ai-box textarea {
-  width: 100%; font-family: var(--sans); font-size: 14px; padding: 12px;
-  border: 1px solid var(--border); background: var(--card); border-radius: 10px; min-height: 90px; resize: vertical;
-}
-.ai-box textarea:focus { outline: none; border-color: var(--accent); }
-.ai-result { margin-top: 20px; display: none; }
-.ai-result.show { display: block; }
-.sentiment-bar { height: 6px; background: var(--border); border-radius: 999px; overflow: hidden; display: flex; margin-top: 8px; }
-.sentiment-bar .pos { background: var(--accent); height: 100%; }
-.sentiment-bar .neg { background: #9B9A97; height: 100%; }
-.sentiment-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); margin-top: 6px; }
-.ai-summary { margin-top: 16px; font-size: 14px; padding-left: 16px; border-left: 2px solid var(--accent); color: var(--text-body); }

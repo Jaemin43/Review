@@ -487,32 +487,4 @@ function renderWordcloud() {
 
 function renderPersonalize() { renderStats(); renderDonut(); renderWordcloud(); }
 
-// ---------- Sentiment analysis ----------
-const POSITIVE_WORDS = ['신선', '친절', '좋았', '재방문', '맛있', '분위기가 좋', '만족', '추천'];
-const NEGATIVE_WORDS = ['불편', '아쉬', '별로', '실망', '비싸', '오래 걸', '길었'];
-
-document.getElementById('aiRun').addEventListener('click', () => {
-  const text = document.getElementById('aiInput').value;
-  let pos = 0, neg = 0;
-  POSITIVE_WORDS.forEach(w => { if (text.includes(w)) pos++; });
-  NEGATIVE_WORDS.forEach(w => { if (text.includes(w)) neg++; });
-
-  const total = pos + neg || 1;
-  const posPct = Math.round((pos / total) * 100);
-  const negPct = 100 - posPct;
-
-  document.getElementById('posBar').style.width = posPct + '%';
-  document.getElementById('negBar').style.width = negPct + '%';
-  document.getElementById('posLabel').textContent = `긍정 ${posPct}%`;
-  document.getElementById('negLabel').textContent = `부정 ${negPct}%`;
-
-  let summary;
-  if (posPct >= 70) summary = '전반적으로 만족도가 높은 리뷰입니다. 친절함과 재방문 의사에 대한 긍정 언급이 두드러집니다.';
-  else if (posPct >= 40) summary = '긍정과 아쉬운 점이 함께 언급된 리뷰입니다. 맛과 분위기는 좋았지만 일부 불편함도 있었던 것으로 보입니다.';
-  else summary = '부정적인 경험이 상대적으로 두드러지는 리뷰입니다. 재방문 전 참고할 만한 지적 사항이 있습니다.';
-
-  document.getElementById('aiSummary').textContent = '요약: ' + summary;
-  document.getElementById('aiResult').classList.add('show');
-});
-
 renderArchive();
