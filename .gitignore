@@ -1,0 +1,6 @@
+js/kakao-config.js
+.env*.local
+
+.vercel
+.env*
+!.env.local.example

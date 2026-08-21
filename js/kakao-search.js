@@ -5,9 +5,15 @@
 (function () {
   'use strict';
 
-  // NOTE: 이 프로젝트는 정적 사이트(빌드/서버 없음)라 이 REST API 키가 브라우저 코드에 그대로 노출됩니다.
-  // 실서비스로 배포한다면 이 키를 서버(프록시)로 옮기고, 클라이언트는 프록시 엔드포인트만 호출하도록 바꿔야 합니다.
-  const KAKAO_REST_API_KEY = '7fa5a20227d5c5c8e42fe96f63ee1465';
+  // 실제 키는 js/kakao-config.js(.gitignore 처리됨, git에 커밋되지 않음)에서 window.KAKAO_REST_API_KEY로 주입된다.
+  // index.html이 kakao-config.js를 kakao-search.js보다 먼저 로드한다. 새로 클론했다면
+  // js/kakao-config.example.js를 js/kakao-config.js로 복사해 실제 키를 채워야 동작한다.
+  // NOTE: 그래도 이 프로젝트는 정적 사이트(빌드/서버 없음)라, 배포된 페이지의 브라우저 코드에는
+  // 키가 그대로 노출된다(깃 저장소에만 안 남을 뿐). 실서비스라면 서버(프록시)로 옮겨야 한다.
+  const KAKAO_REST_API_KEY = window.KAKAO_REST_API_KEY || '';
+  if (!KAKAO_REST_API_KEY) {
+    console.error('[kakao-search] KAKAO_REST_API_KEY가 설정되지 않았습니다. js/kakao-config.example.js를 js/kakao-config.js로 복사하고 키를 채워주세요.');
+  }
 
   const KAKAO_KEYWORD_URL = 'https://dapi.kakao.com/v2/local/search/keyword.json';
   const KAKAO_CATEGORY_URL = 'https://dapi.kakao.com/v2/local/search/category.json';
@@ -165,7 +171,7 @@
     const address = doc.road_address_name || doc.address_name || '주소 정보 없음';
     const phone = doc.phone || '전화번호 정보 없음';
     return `
-      <div class="rcard rcard--visual" data-place-id="${escapeHTML(doc.id)}">
+      <div class="rcard rcard--visual" data-place-id="${escapeHTML(doc.id)}" data-x="${escapeHTML(doc.x)}" data-y="${escapeHTML(doc.y)}">
         <div class="rcard-icon">${pickIcon(doc)}</div>
         <div class="rcard-name">${escapeHTML(doc.place_name)}</div>
         <div class="rcard-meta">${escapeHTML(category)}</div>
@@ -297,5 +303,153 @@
     const nowSaved = toggleSave(place);
     btn.textContent = nowSaved ? '담음 ✓' : '담기';
     btn.classList.toggle('saved', nowSaved);
+  });
+
+  // ---------- 구글 리뷰 보기 ----------
+  const REVIEW_CACHE_KEY = 'misikGoogleReviewCache';
+
+  function loadReviewCache() {
+    try {
+      const raw = localStorage.getItem(REVIEW_CACHE_KEY);
+      const obj = raw ? JSON.parse(raw) : {};
+      return obj && typeof obj === 'object' ? obj : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function persistReviewCache(cache) {
+    try {
+      localStorage.setItem(REVIEW_CACHE_KEY, JSON.stringify(cache));
+    } catch (e) {
+      console.error('[kakao-search] 리뷰 캐시 저장 실패', e);
+    }
+  }
+
+  function getCachedReview(placeId) {
+    const cache = loadReviewCache();
+    return cache[placeId];
+  }
+
+  function setCachedReview(placeId, data) {
+    const cache = loadReviewCache();
+    cache[placeId] = data;
+    persistReviewCache(cache);
+  }
+
+  // 오버레이 DOM은 index.html을 건드리지 않고 런타임에 1회 생성해 body에 붙인다.
+  // discover 탭 모달(#modalOverlay)과는 완전히 별개의 id를 쓴다.
+  const reviewOverlay = document.createElement('div');
+  reviewOverlay.className = 'modal-overlay';
+  reviewOverlay.id = 'ksReviewOverlay';
+  reviewOverlay.innerHTML = `
+    <div class="modal-card" id="ksReviewCard">
+      <button class="modal-close" id="ksReviewClose" aria-label="닫기">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 5 L19 19 M19 5 L5 19" stroke-linecap="round"/></svg>
+      </button>
+      <div class="restaurant-header" id="ksReviewHeader"></div>
+      <div class="review-list" id="ksReviewList"></div>
+    </div>
+  `;
+  document.body.appendChild(reviewOverlay);
+
+  const reviewHeader = document.getElementById('ksReviewHeader');
+  const reviewList = document.getElementById('ksReviewList');
+
+  function openReviewOverlay() {
+    reviewOverlay.classList.add('open');
+    document.body.classList.add('modal-open');
+  }
+
+  function closeReviewOverlay() {
+    reviewOverlay.classList.remove('open');
+    document.body.classList.remove('modal-open');
+  }
+
+  reviewOverlay.addEventListener('click', (e) => {
+    if (e.target === reviewOverlay) closeReviewOverlay();
+  });
+  document.getElementById('ksReviewClose').addEventListener('click', closeReviewOverlay);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && reviewOverlay.classList.contains('open')) closeReviewOverlay();
+  });
+
+  function starLine(rating) {
+    return `⭐ ${typeof rating === 'number' ? rating.toFixed(1) : '-'}`;
+  }
+
+  function renderReview(name, data) {
+    if (!data || data.found === false) {
+      reviewHeader.innerHTML = `
+        <div class="kicker">Google Reviews</div>
+        <div class="rh-top"><span class="rh-name">${escapeHTML(name)}</span></div>
+      `;
+      reviewList.innerHTML = `<div class="empty-state">${escapeHTML(data && data.error ? data.error : '구글에서 이 가게를 찾지 못했습니다.')}</div>`;
+      return;
+    }
+
+    reviewHeader.innerHTML = `
+      <div class="kicker">Google Reviews</div>
+      <div class="rh-top">
+        <span class="rh-name">${escapeHTML(data.name || name)}</span>
+        <span class="rh-rating">${starLine(data.rating)} · 리뷰 ${data.reviewCount || 0}개</span>
+      </div>
+      ${data.mapsUri ? `<div class="rh-meta"><a class="btn ghost" href="${escapeHTML(data.mapsUri)}" target="_blank" rel="noopener noreferrer">구글 맵에서 전체 리뷰 보기</a></div>` : ''}
+    `;
+
+    if (!data.reviews || data.reviews.length === 0) {
+      reviewList.innerHTML = `<div class="empty-state">아직 등록된 리뷰가 없습니다.</div>`;
+      return;
+    }
+
+    reviewList.innerHTML = data.reviews.map((r) => `
+      <div class="review-card">
+        <div class="review-byline">
+          <span>${escapeHTML(r.author)}</span>
+          <span class="rb-rating">${starLine(r.rating)}</span>
+          <span>${escapeHTML(r.relativeTime)}</span>
+        </div>
+        <div class="review-text">${escapeHTML(r.text)}</div>
+      </div>
+    `).join('');
+  }
+
+  async function openReview(placeId, name, x, y) {
+    openReviewOverlay();
+
+    const cached = getCachedReview(placeId);
+    if (cached) {
+      renderReview(name, cached);
+      return;
+    }
+
+    reviewHeader.innerHTML = `<div class="kicker">Google Reviews</div><div class="rh-top"><span class="rh-name">${escapeHTML(name)}</span></div>`;
+    reviewList.innerHTML = `<div class="empty-state">리뷰를 불러오는 중…</div>`;
+
+    try {
+      const params = new URLSearchParams({ name, lat: y, lng: x });
+      const res = await fetch(`/api/google-review?${params.toString()}`);
+      const data = await res.json();
+      setCachedReview(placeId, data);
+      renderReview(name, data);
+    } catch (networkErr) {
+      console.error('[kakao-search] 구글 리뷰 조회 실패', networkErr);
+      reviewList.innerHTML = `<div class="empty-state">리뷰를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.</div>`;
+    }
+  }
+
+  // 카드 클릭(담기 버튼·카카오맵 링크 클릭은 제외) → 리뷰 열기
+  resultGrid.addEventListener('click', (e) => {
+    if (e.target.closest('[data-save-id]') || e.target.closest('a.btn.ghost')) return;
+    const card = e.target.closest('.rcard');
+    if (!card) return;
+
+    const placeId = card.getAttribute('data-place-id');
+    const name = card.querySelector('.rcard-name') ? card.querySelector('.rcard-name').textContent : '';
+    const x = card.getAttribute('data-x');
+    const y = card.getAttribute('data-y');
+    if (!placeId || !name || !x || !y) return;
+
+    openReview(placeId, name, x, y);
   });
 })();
