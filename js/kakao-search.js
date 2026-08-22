@@ -112,7 +112,7 @@
     </div>
     <div class="rule"></div>
     <div id="ksResultGrid" class="card-grid">
-      <div class="empty-state">${INITIAL_MSG}</div>
+      ${window.MisikEmptyState.html(INITIAL_MSG, 'empty')}
     </div>
   `;
 
@@ -171,7 +171,7 @@
     const address = doc.road_address_name || doc.address_name || '주소 정보 없음';
     const phone = doc.phone || '전화번호 정보 없음';
     return `
-      <div class="rcard rcard--visual" data-place-id="${escapeHTML(doc.id)}" data-x="${escapeHTML(doc.x)}" data-y="${escapeHTML(doc.y)}">
+      <div class="rcard rcard--visual" tabindex="0" data-place-id="${escapeHTML(doc.id)}" data-x="${escapeHTML(doc.x)}" data-y="${escapeHTML(doc.y)}">
         <div class="rcard-icon">${pickIcon(doc)}</div>
         <div class="rcard-name">${escapeHTML(doc.place_name)}</div>
         <div class="rcard-meta">${escapeHTML(category)}</div>
@@ -185,13 +185,13 @@
     `;
   }
 
-  function renderStatus(message) {
-    resultGrid.innerHTML = `<div class="empty-state">${escapeHTML(message)}</div>`;
+  function renderStatus(message, type) {
+    window.MisikEmptyState.render(resultGrid, escapeHTML(message), type || 'empty');
   }
 
   function renderResults(docs) {
     if (!docs || docs.length === 0) {
-      renderStatus('검색 결과가 없습니다. 다른 키워드로 시도해보세요.');
+      renderStatus('검색 결과가 없습니다. 다른 키워드로 시도해보세요.', 'empty');
       return;
     }
     resultGrid.innerHTML = docs.map(placeCardHTML).join('');
@@ -226,12 +226,12 @@
     const categoryCode = categorySelect.value;
 
     if (!query && !categoryCode && !regionName) {
-      renderStatus(INITIAL_MSG);
+      renderStatus(INITIAL_MSG, 'empty');
       return;
     }
 
     const seq = ++requestSeq;
-    renderStatus('검색 중입니다…');
+    renderStatus('검색 중입니다…', 'loading');
 
     try {
       let data;
@@ -264,7 +264,7 @@
       renderResults(data.documents);
     } catch (err) {
       if (seq !== requestSeq) return;
-      renderStatus(err && err.message ? err.message : '알 수 없는 오류가 발생했습니다.');
+      renderStatus(err && err.message ? err.message : '알 수 없는 오류가 발생했습니다.', 'error');
       console.error('[kakao-search]', err);
     }
   }
@@ -282,6 +282,18 @@
   queryInput.addEventListener('input', debouncedSearch);
   regionSelect.addEventListener('change', runSearch);
   categorySelect.addEventListener('change', runSearch);
+
+  // 카드 자체는 담기 버튼/카카오맵 링크를 품고 있어 <button>으로 만들 수 없다(인터랙티브 요소 중첩 불가).
+  // 대신 tabindex="0"을 주고, 포커스가 카드 자체(중첩된 버튼/링크가 아님)에 있을 때 Enter/Space를
+  // 클릭으로 위임해 키보드로도 열 수 있게 한다 — discover 탭의 <button class="rcard">와 동일한 결과.
+  resultGrid.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    if (e.target.closest('button, a')) return;
+    const card = e.target.closest('.rcard');
+    if (!card) return;
+    e.preventDefault();
+    card.click();
+  });
 
   // 담기/해제 버튼 (이벤트 위임)
   resultGrid.addEventListener('click', (e) => {
@@ -348,8 +360,8 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 5 L19 19 M19 5 L5 19" stroke-linecap="round"/></svg>
       </button>
       <div class="restaurant-header" id="ksReviewHeader"></div>
-      <div class="ai-analysis" id="ksAnalysisSection" style="display:none"></div>
       <div class="review-list" id="ksReviewList"></div>
+      <div class="ai-analysis" id="ksAnalysisSection" style="display:none"></div>
     </div>
   `;
   document.body.appendChild(reviewOverlay);
@@ -386,7 +398,11 @@
         <div class="kicker">Google Reviews</div>
         <div class="rh-top"><span class="rh-name">${escapeHTML(name)}</span></div>
       `;
-      reviewList.innerHTML = `<div class="empty-state">${escapeHTML(data && data.error ? data.error : '구글에서 이 가게를 찾지 못했습니다.')}</div>`;
+      window.MisikEmptyState.render(
+        reviewList,
+        escapeHTML(data && data.error ? data.error : '구글에서 이 가게를 찾지 못했습니다.'),
+        data && data.error ? 'error' : 'empty'
+      );
       return;
     }
 
@@ -400,7 +416,7 @@
     `;
 
     if (!data.reviews || data.reviews.length === 0) {
-      reviewList.innerHTML = `<div class="empty-state">아직 등록된 리뷰가 없습니다.</div>`;
+      window.MisikEmptyState.render(reviewList, '아직 등록된 리뷰가 없습니다.', 'empty');
       return;
     }
 
@@ -428,7 +444,7 @@
     }
 
     reviewHeader.innerHTML = `<div class="kicker">Google Reviews</div><div class="rh-top"><span class="rh-name">${escapeHTML(name)}</span></div>`;
-    reviewList.innerHTML = `<div class="empty-state">리뷰를 불러오는 중…</div>`;
+    window.MisikEmptyState.render(reviewList, '리뷰를 불러오는 중…', 'loading');
 
     try {
       const params = new URLSearchParams({ name, lat: y, lng: x });
@@ -439,13 +455,12 @@
       maybeStartAnalysis(placeId, data);
     } catch (networkErr) {
       console.error('[kakao-search] 구글 리뷰 조회 실패', networkErr);
-      reviewList.innerHTML = `<div class="empty-state">리뷰를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.</div>`;
+      window.MisikEmptyState.render(reviewList, '리뷰를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.', 'error');
     }
   }
 
   // ---------- AI 리뷰 분석 (Gemini) ----------
   const AI_CACHE_KEY = 'misikAiAnalysisCache';
-  const WORDCLOUD_SRC = 'https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.js';
 
   function loadAiCache() {
     try {
@@ -482,55 +497,25 @@
 
   function showAnalysisLoading() {
     analysisSection.style.display = '';
-    analysisSection.innerHTML = `<div class="viz-title">AI 리뷰 분석</div><div class="empty-state">AI가 리뷰를 분석하는 중…</div>`;
+    analysisSection.innerHTML = `<div class="viz-title">AI 리뷰 분석</div>${window.MisikEmptyState.html('AI가 리뷰를 분석하는 중…', 'loading')}`;
   }
 
   function showAnalysisError(message) {
     analysisSection.style.display = '';
-    analysisSection.innerHTML = `<div class="viz-title">AI 리뷰 분석</div><div class="empty-state">${escapeHTML(message)}</div>`;
+    analysisSection.innerHTML = `<div class="viz-title">AI 리뷰 분석</div>${window.MisikEmptyState.html(escapeHTML(message), 'error')}`;
   }
 
-  let wordCloudLoadPromise = null;
-  function loadWordCloudLib() {
-    if (window.WordCloud) return Promise.resolve();
-    if (wordCloudLoadPromise) return wordCloudLoadPromise;
-    wordCloudLoadPromise = new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = WORDCLOUD_SRC;
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error('워드클라우드 라이브러리를 불러오지 못했습니다.'));
-      document.head.appendChild(script);
-    });
-    return wordCloudLoadPromise;
-  }
-
-  async function renderWordCloud(keywords) {
+  function renderWordCloud(keywords) {
     const canvas = document.getElementById('ksKeywordCanvas');
-    if (!canvas || !keywords || keywords.length === 0) return;
+    if (!canvas || !window.MisikWordCloud) return;
 
-    try {
-      await loadWordCloudLib();
-    } catch (e) {
-      console.error('[kakao-search]', e);
-      return;
-    }
+    const rootStyle = getComputedStyle(document.documentElement);
+    const posColor = rootStyle.getPropertyValue('--sentiment-pos').trim() || '#0F7B6C';
+    const negColor = rootStyle.getPropertyValue('--sentiment-neg').trim() || '#E03E3E';
 
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = Math.max(280, Math.round(rect.width));
-    canvas.height = 200;
-
-    const colorByWord = {};
-    keywords.forEach((k) => { colorByWord[k.word] = k.context === 'negative' ? '#E5484D' : '#2E9E5B'; });
-
-    window.WordCloud(canvas, {
-      list: keywords.map((k) => [k.word, k.score]),
-      weightFactor: (size) => 9 + size * 3.4,
-      fontFamily: "'Pretendard Variable', -apple-system, sans-serif",
-      color: (word) => colorByWord[word] || '#2E9E5B',
-      backgroundColor: 'transparent',
-      rotateRatio: 0,
-      gridSize: 8,
-      shuffle: false
+    window.MisikWordCloud.render(canvas, keywords, {
+      height: 200,
+      colorFn: (item) => (item.context === 'negative' ? negColor : posColor)
     });
   }
 

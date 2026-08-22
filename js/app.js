@@ -102,7 +102,21 @@ const CATEGORY_TONE = {
   '양식': { bg: '#EAE4F2', fg: '#6940A5' }, // purple
   '카페': { bg: '#E9E5E3', fg: '#64473A' }, // brown
 };
-function categoryTone(cat) { return CATEGORY_TONE[cat] || { bg: 'var(--bg-soft)', fg: 'var(--accent)' }; }
+// 위 파스텔 톤은 밝은 배경 전제라 다크 모드에서는 그대로 쓰면 카드 위에서 튄다.
+// 같은 색상 역할(주황/빨강/노랑/파랑/보라/갈색)을 유지한 채 명도만 다크 모드용으로 낮췄다.
+const CATEGORY_TONE_DARK = {
+  '한식': { bg: '#3A2A1C', fg: '#E8A365' },
+  '중식': { bg: '#3A2222', fg: '#E8746D' },
+  '분식': { bg: '#3A331C', fg: '#E8C567' },
+  '일식': { bg: '#1C3038', fg: '#6BB8D6' },
+  '양식': { bg: '#2E2438', fg: '#B48FE0' },
+  '카페': { bg: '#2A2420', fg: '#B89A82' },
+};
+function categoryTone(cat) {
+  const isDark = window.MisikTheme ? window.MisikTheme.get() === 'dark' : false;
+  const map = isDark ? CATEGORY_TONE_DARK : CATEGORY_TONE;
+  return map[cat] || { bg: 'var(--bg-soft)', fg: 'var(--accent)' };
+}
 
 function rcardPhoto(r, rank, extraClass) {
   const tone = categoryTone(r.category);
@@ -160,7 +174,7 @@ function paintRestaurants() {
 
   if (!filtered.length) {
     featuredWrap.innerHTML = '';
-    restaurantGrid.innerHTML = '<div class="empty-state">조건에 맞는 맛집이 없습니다.</div>';
+    window.MisikEmptyState.render(restaurantGrid, '조건에 맞는 맛집이 없습니다.', 'empty');
     return;
   }
 
@@ -213,6 +227,13 @@ function renderRestaurants() {
 [searchInput, regionSelect, categorySelect].forEach(el => el.addEventListener('input', renderRestaurants));
 renderRestaurants();
 
+// 카테고리 타일 색·워드클라우드 색은 테마 토큰을 그릴 때 한 번만 읽어오므로,
+// 테마가 바뀌면(토글 클릭·OS 설정 변경 모두) 다시 그려서 색이 즉시 반영되게 한다.
+document.addEventListener('misik:themechange', () => {
+  renderRestaurants();
+  renderPersonalize();
+});
+
 featuredWrap.addEventListener('click', (e) => {
   const card = e.target.closest('.featured');
   if (!card) return;
@@ -225,53 +246,26 @@ restaurantGrid.addEventListener('click', (e) => {
   openModal(card, Number(card.dataset.id));
 });
 
-// ---------- Restaurant modal (GSAP Flip grid → modal morph) ----------
-gsap.registerPlugin(Flip);
-
+// ---------- Restaurant modal ----------
 const modalOverlay = document.getElementById('modalOverlay');
 const modalCard = document.getElementById('modalCard');
 
 let currentRestaurantId = null;
 let detailTrustFilter = 'all';
-let sourceCardEl = null;
 
 function openModal(cardEl, id) {
   currentRestaurantId = id;
   detailTrustFilter = 'all';
-  sourceCardEl = cardEl;
   document.querySelectorAll('#modalCard .trust-filter .chip').forEach(c => c.classList.toggle('active', c.dataset.filter === 'all'));
   renderModalReviews();
 
-  const state = Flip.getState(cardEl);
   modalOverlay.classList.add('open');
   document.body.classList.add('modal-open');
-
-  gsap.killTweensOf(modalCard);
-  Flip.from(state, {
-    targets: modalCard,
-    duration: 0.6,
-    ease: 'power3.inOut',
-    absolute: true,
-    scale: true,
-  });
 }
 
 function closeModal() {
-  if (!modalOverlay.classList.contains('open')) return;
-  const targetEl = sourceCardEl && sourceCardEl.isConnected ? sourceCardEl : featuredWrap;
-
-  gsap.killTweensOf(modalCard);
-  Flip.fit(modalCard, targetEl, {
-    duration: 0.5,
-    ease: 'power3.inOut',
-    scale: true,
-    absolute: true,
-    onComplete: () => {
-      modalOverlay.classList.remove('open');
-      document.body.classList.remove('modal-open');
-      gsap.set(modalCard, { clearProps: 'all' });
-    },
-  });
+  modalOverlay.classList.remove('open');
+  document.body.classList.remove('modal-open');
 }
 
 modalOverlay.addEventListener('click', (e) => {
@@ -312,7 +306,7 @@ function renderModalReviews() {
       </div>
       <p class="review-text">${rv.content}</p>
     </div>
-  `).join('') : '<div class="empty-state">조건에 맞는 리뷰가 없습니다.</div>';
+  `).join('') : window.MisikEmptyState.html('조건에 맞는 리뷰가 없습니다.', 'empty');
 }
 
 document.querySelectorAll('#modalCard .trust-filter .chip').forEach(chip => {
@@ -375,7 +369,7 @@ function renderArchive() {
         </div>
       </div>
     </div>
-  `).join('') : '<div class="empty-state">아직 기록이 없습니다. 왼쪽에서 첫 방문을 기록해보세요.</div>';
+  `).join('') : window.MisikEmptyState.html('아직 기록이 없습니다. 왼쪽에서 첫 방문을 기록해보세요.', 'empty');
   renderPersonalize();
 }
 
@@ -479,10 +473,15 @@ function renderDonut() {
 }
 
 function renderWordcloud() {
-  const cloud = document.getElementById('wordcloud');
-  cloud.innerHTML = WORDS.map(item => `
-    <span style="font-size:${item.s}px; color:${item.s > 22 ? 'var(--accent)' : 'var(--text-secondary)'}; font-weight:${item.s > 22 ? 600 : 500};">${item.w}</span>
-  `).join('');
+  const canvas = document.getElementById('wordcloud');
+  if (!canvas || !window.MisikWordCloud) return;
+  const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  const secondary = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim();
+  window.MisikWordCloud.render(
+    canvas,
+    WORDS.map(item => ({ word: item.w, score: item.s })),
+    { height: 180, colorFn: (item) => (item.score > 22 ? accent : secondary) }
+  );
 }
 
 function renderPersonalize() { renderStats(); renderDonut(); renderWordcloud(); }
