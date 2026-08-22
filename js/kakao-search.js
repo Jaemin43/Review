@@ -82,7 +82,7 @@
 
   const INITIAL_MSG = '검색어를 입력하거나 지역/카테고리를 선택하면 카카오 로컬 검색 결과가 여기에 표시됩니다.';
 
-  // 마크업은 discover 탭(#tab-discover)의 기존 클래스만 재사용한다.
+  // 마크업은 카드 그리드에 쓰이던 기존 공용 클래스(.masthead-filters, .card-grid, .rcard 등)를 재사용한다.
   // .btn-save / .btn-save.saved 는 이 프로젝트에 없던 새 클래스 — 완료 후 Female에게 전달.
   root.innerHTML = `
     <div class="kicker">맛집 담기 · Kakao Local Search</div>
@@ -285,7 +285,7 @@
 
   // 카드 자체는 담기 버튼/카카오맵 링크를 품고 있어 <button>으로 만들 수 없다(인터랙티브 요소 중첩 불가).
   // 대신 tabindex="0"을 주고, 포커스가 카드 자체(중첩된 버튼/링크가 아님)에 있을 때 Enter/Space를
-  // 클릭으로 위임해 키보드로도 열 수 있게 한다 — discover 탭의 <button class="rcard">와 동일한 결과.
+  // 클릭으로 위임해 키보드로도 열 수 있게 한다.
   resultGrid.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
     if (e.target.closest('button, a')) return;
@@ -350,7 +350,7 @@
   }
 
   // 오버레이 DOM은 index.html을 건드리지 않고 런타임에 1회 생성해 body에 붙인다.
-  // discover 탭 모달(#modalOverlay)과는 완전히 별개의 id를 쓴다.
+  // 다른 모달(로그인 등)과 겹치지 않도록 이 파일 전용 id를 쓴다.
   const reviewOverlay = document.createElement('div');
   reviewOverlay.className = 'modal-overlay';
   reviewOverlay.id = 'ksReviewOverlay';

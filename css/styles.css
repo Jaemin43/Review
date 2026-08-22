@@ -66,7 +66,7 @@
 /* ---------- Breakpoint scale ----------
    미디어 쿼리 조건에는 CSS 커스텀 프로퍼티를 쓸 수 없어(브라우저 제약) 리터럴 값을 그대로 쓰지만,
    아래 4단계로 의도를 고정해 컴포넌트마다 임의의 숫자가 늘어나지 않도록 한다:
-   - 640px: 좁은 모바일. 그리드/카드가 1열로 완전히 쌓이는 지점(.card-grid, .rcard--medium, .modal-card).
+   - 640px: 좁은 모바일. 그리드/카드가 1열로 완전히 쌓이는 지점(.card-grid, .modal-card).
    - 700px: 3분할 콘텐츠(.stat-row)가 세로로 쌓이는 지점 — 2분할보다 폭이 더 필요해서 800보다 먼저 꺾인다.
    - 760px: 사이드바가 고정 레일(220px)에서 상단 바로 바뀌는, 이 레이아웃의 핵심 분기점.
    - 800px: 2분할 콘텐츠(.archive-grid, .personalize-grid)가 세로로 쌓이는 지점.
@@ -102,8 +102,8 @@ button { font-family: inherit; }
 }
 
 .btn:focus-visible, .auth-btn:focus-visible, .btn-save:focus-visible,
-.chip:focus-visible, .side-nav-btn:focus-visible, .modal-close:focus-visible,
-.theme-toggle:focus-visible, .rcard:focus-visible, .featured:focus-visible,
+.side-nav-btn:focus-visible, .modal-close:focus-visible,
+.theme-toggle:focus-visible, .rcard:focus-visible,
 a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
   outline: 2px solid var(--accent); outline-offset: 2px;
 }
@@ -278,45 +278,9 @@ footer {
 
 .rule { height: 1px; background: var(--border); margin: var(--space-7) 0; }
 
-/* ---------- Discover: featured spread ---------- */
-.featured {
-  display: grid; grid-template-columns: 1.1fr 1fr;
-  width: 100%; text-align: left; background: var(--card); border: 1px solid var(--border);
-  border-radius: var(--radius-md); padding: 0; cursor: pointer; margin-bottom: var(--space-9);
-  overflow: hidden; box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-slow) ease, transform var(--transition-slow) ease;
-}
-.featured:hover { box-shadow: var(--shadow-card-hover); transform: translateY(-3px); }
-.featured-visual {
-  border-right: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: center; padding: var(--space-9); min-height: 280px;
-  overflow: hidden; position: relative;
-}
-.featured-visual-icon svg { width: clamp(64px, 8vw, 108px); height: clamp(64px, 8vw, 108px); }
-.featured-visual .brand-mark {
-  position: absolute; bottom: 16px; right: 20px;
-  font-family: var(--serif-en); font-weight: 800; letter-spacing: -0.02em;
-  font-size: 13px; color: var(--text-secondary); opacity: 0.55; user-select: none;
-}
-.featured-info { padding: var(--space-8); display: flex; flex-direction: column; }
-.featured-order { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-secondary); margin-top: 6px; }
-.featured-name { font-family: var(--serif); font-size: clamp(30px, 3.6vw, 44px); font-weight: 900; letter-spacing: -0.02em; margin: 14px 0 18px; }
-.featured-meta { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-secondary); line-height: 1.9; }
-.featured-rating {
-  font-family: var(--serif); font-size: clamp(24px, 2.6vw, 30px); font-weight: 800; letter-spacing: -0.01em;
-  color: var(--text); font-variant-numeric: tabular-nums; margin-top: 18px;
-}
-.featured-desc { margin-top: 8px; font-size: 13px; font-weight: 400; color: var(--text-body); }
-
-@media (max-width: 760px) {
-  .featured { grid-template-columns: 1fr; }
-  .featured-visual { border-right: none; border-bottom: 1px solid var(--border); min-height: 180px; padding: var(--space-7); }
-  .featured-info { padding: var(--space-6); }
-}
-
-/* ---------- Discover: editorial card grid ---------- */
-.card-grid, #featuredWrap { transition: opacity var(--transition-base) ease, transform var(--transition-base) ease; }
-.card-grid.is-fading, #featuredWrap.is-fading { opacity: 0; transform: translateY(6px); }
+/* ---------- Editorial card grid ---------- */
+.card-grid { transition: opacity var(--transition-base) ease, transform var(--transition-base) ease; }
+.card-grid.is-fading { opacity: 0; transform: translateY(6px); }
 
 .card-grid { display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-flow: dense; gap: var(--space-6); }
 @media (max-width: 900px) { .card-grid { grid-template-columns: repeat(2, 1fr); } }
@@ -331,40 +295,10 @@ footer {
 }
 .rcard:hover { border-color: var(--border); box-shadow: var(--shadow-card-hover); transform: translateY(-4px); }
 .rcard:hover .rcard-name { color: var(--accent); }
-.rcard:hover .rcard-photo svg { transform: scale(1.08); }
-
-.rcard--medium { grid-column: span 2; flex-direction: row; align-items: stretch; gap: var(--space-5); }
-@media (max-width: 640px) { .rcard--medium { grid-column: span 1; flex-direction: column; gap: 0; } }
-
-/* ---------- Discover: card "photo" area (icon stands in for a real listing photo) ---------- */
-.rcard-photo {
-  position: relative; flex-shrink: 0;
-  margin: -24px -24px 16px -24px; height: 128px;
-  display: flex; align-items: center; justify-content: center;
-}
-.rcard-photo svg { width: 42px; height: 42px; transition: transform var(--transition-slow) ease; }
-.rcard-badge {
-  position: absolute; top: 10px; left: 10px;
-  background: var(--badge-bg); color: var(--text);
-  font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: var(--radius-pill);
-  font-variant-numeric: tabular-nums; box-shadow: 0 2px 6px rgba(15, 15, 15, 0.12);
-}
-.rcard-photo--tall { height: 168px; }
-
-.rcard--medium .rcard-photo {
-  margin: -24px 0 -24px -24px; height: auto; width: 160px;
-  border-top-right-radius: 0; border-bottom-right-radius: 0;
-}
-.rcard--medium .rcard-photo svg { width: 46px; height: 46px; }
-@media (max-width: 640px) {
-  .rcard--medium .rcard-photo { margin: -24px -24px 16px -24px; width: auto; height: 128px; }
-}
 
 .rcard-body { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
 
-/* .rcard-icon is kept for the 맛집 담기(search) tab, which still reuses this
-   class name from js/kakao-search.js — do not remove even though the
-   discover tab now uses .rcard-photo instead. */
+/* 맛집 담기(search) 탭 카드(js/kakao-search.js)가 대표 이미지 자리에 쓰는 아이콘. */
 .rcard-icon { color: var(--accent); margin-bottom: 18px; }
 .rcard-icon svg { width: 36px; height: 36px; }
 
@@ -424,16 +358,6 @@ body.modal-open { overflow: hidden; }
 .restaurant-header .rh-name { font-family: var(--serif); font-size: clamp(26px, 3.4vw, 32px); font-weight: 900; letter-spacing: -0.02em; }
 .restaurant-header .rh-rating { color: var(--accent); font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .restaurant-header .rh-meta { font-size: 13px; color: var(--text-body); margin-top: 10px; }
-
-.trust-filter {
-  display: flex; gap: var(--space-5); margin-bottom: var(--space-7);
-  font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
-}
-.chip {
-  background: none; border: none; padding: 0 0 4px; cursor: pointer;
-  color: var(--text-secondary); border-bottom: 2px solid transparent; transition: var(--transition-fast);
-}
-.chip.active { color: var(--text); border-bottom-color: var(--accent); }
 
 .review-list { display: flex; flex-direction: column; }
 .review-card { padding: var(--space-5) 0; border-bottom: 1px solid var(--border); }
