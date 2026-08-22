@@ -164,7 +164,10 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && authModalOverlay.classList.contains('open')) closeAuthModal();
 });
 
-authLogoutBtn.addEventListener('click', () => { supabaseClient.auth.signOut(); });
+authLogoutBtn.addEventListener('click', async () => {
+  const { error } = await supabaseClient.auth.signOut();
+  if (!error && window.MisikToast) window.MisikToast.show('로그아웃이 완료되었습니다.');
+});
 
 // ---------- Session bootstrap & live sync ----------
 // 새로고침해도 로그인 상태가 유지되도록, Supabase 세션(로컬스토리지에 보관됨)을

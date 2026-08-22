@@ -135,6 +135,23 @@ const WORDS = [
   { w: '신선한', s: 17 }, { w: '혼밥', s: 15 }, { w: '조용한', s: 16 }, { w: '뷰맛집', s: 14 },
 ];
 
+// 기록이 없으면 DEFAULT_CATEGORY_DIST로 폴백 — 도넛 차트뿐 아니라 맛집 추천 탭
+// (js/kakao-search.js)도 이 함수로 "가장 많이 방문한 카테고리"를 가져다 쓴다.
+function categoryDistribution() {
+  const list = loadArchive();
+  if (!list.length) return { ...DEFAULT_CATEGORY_DIST };
+  const dist = {};
+  list.forEach(item => { dist[item.category] = (dist[item.category] || 0) + 1; });
+  return dist;
+}
+
+function topCategory() {
+  const dist = categoryDistribution();
+  return Object.entries(dist).sort((a, b) => b[1] - a[1])[0][0];
+}
+
+window.MisikArchive = { load: loadArchive, categoryDistribution, topCategory };
+
 function renderStats() {
   const list = loadArchive();
   const statRow = document.getElementById('statRow');
@@ -149,27 +166,16 @@ function renderStats() {
   }
 
   const avgStars = (list.reduce((sum, i) => sum + i.stars, 0) / list.length).toFixed(1);
-  const dist = {};
-  list.forEach(i => { dist[i.category] = (dist[i.category] || 0) + 1; });
-  const topCategory = Object.entries(dist).sort((a, b) => b[1] - a[1])[0][0];
 
   statRow.innerHTML = `
     <div class="stat-box"><div class="stat-value">${list.length}</div><div class="stat-label">총 기록</div></div>
     <div class="stat-box"><div class="stat-value">★ ${avgStars}</div><div class="stat-label">평균 별점</div></div>
-    <div class="stat-box"><div class="stat-value">${topCategory}</div><div class="stat-label">최다 카테고리</div></div>
+    <div class="stat-box"><div class="stat-value">${topCategory()}</div><div class="stat-label">최다 카테고리</div></div>
   `;
 }
 
 function renderDonut() {
-  const list = loadArchive();
-  let dist = {};
-  if (list.length) {
-    list.forEach(item => { dist[item.category] = (dist[item.category] || 0) + 1; });
-  } else {
-    dist = DEFAULT_CATEGORY_DIST;
-  }
-
-  const entries = Object.entries(dist);
+  const entries = Object.entries(categoryDistribution());
   const total = entries.reduce((sum, [, v]) => sum + v, 0);
 
   let acc = 0;

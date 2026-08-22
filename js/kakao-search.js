@@ -1,6 +1,5 @@
 // ---------- 맛집 담기: Kakao Local API 검색 (owner: MALE) ----------
-// Mount point: #searchTabRoot (see index.html, #tab-search section)
-// Do not edit index.html / css/styles.css / js/app.js — render everything into #searchTabRoot.
+// Mount points: #searchTabRoot (#tab-search 섹션), #recommendTabRoot (#tab-recommend 섹션) — 둘 다 index.html 참고.
 
 (function () {
   'use strict';
@@ -185,16 +184,17 @@
     `;
   }
 
-  function renderStatus(message, type) {
-    window.MisikEmptyState.render(resultGrid, escapeHTML(message), type || 'empty');
+  function renderStatus(message, type, grid) {
+    window.MisikEmptyState.render(grid || resultGrid, escapeHTML(message), type || 'empty');
   }
 
-  function renderResults(docs) {
+  function renderResults(docs, grid) {
+    const target = grid || resultGrid;
     if (!docs || docs.length === 0) {
-      renderStatus('검색 결과가 없습니다. 다른 키워드로 시도해보세요.', 'empty');
+      renderStatus('검색 결과가 없습니다. 다른 키워드로 시도해보세요.', 'empty', target);
       return;
     }
-    resultGrid.innerHTML = docs.map(placeCardHTML).join('');
+    target.innerHTML = docs.map(placeCardHTML).join('');
   }
 
   // ---------- Kakao Local API ----------
@@ -286,7 +286,9 @@
   // 카드 자체는 담기 버튼/카카오맵 링크를 품고 있어 <button>으로 만들 수 없다(인터랙티브 요소 중첩 불가).
   // 대신 tabindex="0"을 주고, 포커스가 카드 자체(중첩된 버튼/링크가 아님)에 있을 때 Enter/Space를
   // 클릭으로 위임해 키보드로도 열 수 있게 한다.
-  resultGrid.addEventListener('keydown', (e) => {
+  // document에 위임해서, 맛집 담기 탭의 결과 그리드뿐 아니라 맛집 추천 탭의 그리드에서도
+  // (같은 .rcard 마크업을 재사용하므로) 별도 코드 없이 그대로 동작한다.
+  document.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
     if (e.target.closest('button, a')) return;
     const card = e.target.closest('.rcard');
@@ -295,8 +297,8 @@
     card.click();
   });
 
-  // 담기/해제 버튼 (이벤트 위임)
-  resultGrid.addEventListener('click', (e) => {
+  // 담기/해제 버튼 (이벤트 위임, document 기준 — 위와 같은 이유)
+  document.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-save-id]');
     if (!btn) return;
     const card = btn.closest('.rcard');
@@ -584,8 +586,8 @@
     runAnalysis(placeId, reviewData.name, reviewData.reviews);
   }
 
-  // 카드 클릭(담기 버튼·카카오맵 링크 클릭은 제외) → 리뷰 열기
-  resultGrid.addEventListener('click', (e) => {
+  // 카드 클릭(담기 버튼·카카오맵 링크 클릭은 제외) → 리뷰 열기 (document 위임, 위와 같은 이유)
+  document.addEventListener('click', (e) => {
     if (e.target.closest('[data-save-id]') || e.target.closest('a.btn.ghost')) return;
     const card = e.target.closest('.rcard');
     if (!card) return;
@@ -598,4 +600,49 @@
 
     openReview(placeId, name, x, y);
   });
+
+  // ---------- 맛집 추천 (내 취향 카테고리 기반) ----------
+  // #tab-recommend/#recommendTabRoot (index.html): 내 기록(js/app.js의 window.MisikArchive)에서
+  // 가장 많이 방문한 카테고리를 뽑아, 그 카테고리로 Kakao 키워드 검색 1회를 실행해 보여준다.
+  // 카드/담기/리뷰 열기는 위에서 이미 document 단위로 위임해뒀으므로 이 그리드도 그대로 동작한다.
+  const recommendRoot = document.getElementById('recommendTabRoot');
+  if (recommendRoot) {
+    const recommendCategory = (window.MisikArchive && window.MisikArchive.topCategory()) || '한식';
+
+    recommendRoot.innerHTML = `
+      <div class="kicker">맛집 추천 · 내 기록 기반</div>
+      <h1 class="masthead-title">${escapeHTML(recommendCategory)} 맛집, 이런 곳 어때요?</h1>
+      <div style="margin-bottom:20px;">
+        <button type="button" class="btn ghost" id="recRefresh">다른 곳 추천받기</button>
+      </div>
+      <div class="rule"></div>
+      <div id="recGrid" class="card-grid"></div>
+    `;
+
+    const recGrid = document.getElementById('recGrid');
+
+    async function fetchRecommendations() {
+      renderStatus('추천 맛집을 불러오는 중…', 'loading', recGrid);
+      try {
+        // 매번 1~3페이지 중 하나를 무작위로 골라, "다른 곳 추천받기"를 눌렀을 때 결과가 달라지게 한다.
+        const page = 1 + Math.floor(Math.random() * 3);
+        const data = await kakaoFetch(KAKAO_KEYWORD_URL, {
+          query: recommendCategory,
+          x: DEFAULT_COORD.x,
+          y: DEFAULT_COORD.y,
+          radius: DEFAULT_RADIUS_M,
+          size: 15,
+          sort: 'accuracy',
+          page
+        });
+        renderResults(data.documents, recGrid);
+      } catch (err) {
+        renderStatus(err && err.message ? err.message : '추천을 불러오지 못했습니다.', 'error', recGrid);
+        console.error('[kakao-search] 맛집 추천 실패', err);
+      }
+    }
+
+    document.getElementById('recRefresh').addEventListener('click', fetchRecommendations);
+    fetchRecommendations();
+  }
 })();
