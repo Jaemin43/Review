@@ -86,6 +86,22 @@
   root.innerHTML = `
     <div class="kicker">맛집 담기 · Kakao Local Search</div>
     <h1 class="masthead-title">가고 싶은 곳을 검색해보세요</h1>
+
+    <div class="home-widgets">
+      <section class="home-widget">
+        <div class="kicker">지금 인기 맛집</div>
+        <h2 class="widget-title">가장 많이 담긴 TOP 5</h2>
+        <div id="rankingList"></div>
+      </section>
+
+      <section class="home-widget" id="recoWidget" hidden>
+        <div class="kicker" id="recoKicker">맞춤 추천</div>
+        <h2 class="widget-title" id="recoTitle"></h2>
+        <div id="recoGrid" class="card-grid"></div>
+      </section>
+    </div>
+    <div class="rule"></div>
+
     <div class="masthead-filters">
       <span class="mf-item">
         <label for="ksQuery">검색어</label>
@@ -119,6 +135,11 @@
   const regionSelect = document.getElementById('ksRegion');
   const categorySelect = document.getElementById('ksCategory');
   const resultGrid = document.getElementById('ksResultGrid');
+  const rankingList = document.getElementById('rankingList');
+  const recoWidget = document.getElementById('recoWidget');
+  const recoKicker = document.getElementById('recoKicker');
+  const recoTitle = document.getElementById('recoTitle');
+  const recoGrid = document.getElementById('recoGrid');
 
   // ---------- 담은 맛집 (Supabase saved_places, 로그인 사용자별) ----------
   // 실제 담김 여부는 Supabase에 있지만, 카드 렌더링은 동기적으로 일어나야 하므로
@@ -199,6 +220,118 @@
     savedPlaceIds.add(place.place_id);
     return true;
   }
+
+  // ---------- 홈 위젯 1: 인기 랭킹 TOP 5 ----------
+  // Postgres 함수 get_popular_places(sql/get_popular_places.sql)를 호출한다. saved_places에
+  // 걸린 RLS 때문에 일반 select로는 본인 것만 보이지만, 이 함수는 SECURITY DEFINER로
+  // 전체를 집계해 "가게 이름 + 담긴 횟수"만 돌려준다(누가 담았는지는 절대 나오지 않음).
+  // 로그인 여부와 무관하게 누구나 볼 수 있는 공개 데이터라 로그인 없이도 호출한다.
+  function rankingItemHTML(row, idx) {
+    return `
+      <li class="ranking-item">
+        <span class="rank-num">${idx + 1}</span>
+        <span class="rank-name">${escapeHTML(row.place_name)}</span>
+        <span class="rank-count">${escapeHTML(row.save_count)}번 담김</span>
+      </li>
+    `;
+  }
+
+  async function loadPopularPlaces() {
+    if (!rankingList) return;
+    window.MisikEmptyState.render(rankingList, '인기 맛집을 불러오는 중…', 'loading');
+
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const { data, error } = await client.rpc('get_popular_places', { result_limit: 5 });
+    if (error) {
+      console.error('[kakao-search] 인기 랭킹 조회 실패', error);
+      window.MisikEmptyState.render(rankingList, '인기 랭킹을 불러오지 못했습니다.', 'error');
+      return;
+    }
+    if (!data || data.length === 0) {
+      window.MisikEmptyState.render(rankingList, '아직 담긴 맛집이 없습니다.', 'empty');
+      return;
+    }
+    rankingList.innerHTML = `<ol class="ranking-list">${data.map(rankingItemHTML).join('')}</ol>`;
+  }
+
+  // ---------- 홈 위젯 2: 맞춤 추천 (내가 담은 가게 기반) ----------
+  // 로그인한 사용자가 담은 가게들(saved_places) 중 가장 잦은 카테고리를 찾아, 그
+  // 카테고리로 Kakao 키워드 검색을 해서 보여준다. 이미 담은 가게는 결과에서 뺀다.
+  // 여기서도 "내 것만 골라줘" 조건(eq user_id)을 걸지 않고 select만 한다 — RLS가
+  // 로그인한 사용자 본인 행만 돌려준다.
+  async function loadPersonalRecommendation() {
+    if (!recoWidget) return;
+    if (!window.MisikAuth || !window.MisikAuth.isLoggedIn()) {
+      recoWidget.hidden = true;
+      return;
+    }
+
+    const client = getSupabaseClient();
+    const user = window.MisikAuth.getUser();
+    if (!client || !user) {
+      recoWidget.hidden = true;
+      return;
+    }
+
+    const { data, error } = await client.from(SAVED_TABLE).select('category, place_id');
+    if (error) {
+      console.error('[kakao-search] 맞춤 추천용 담은 가게 조회 실패', error);
+      recoWidget.hidden = true;
+      return;
+    }
+    if (!data || data.length === 0) {
+      recoWidget.hidden = true;
+      return;
+    }
+
+    const counts = {};
+    data.forEach((row) => {
+      if (!row.category) return;
+      counts[row.category] = (counts[row.category] || 0) + 1;
+    });
+    const topEntry = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    if (!topEntry) {
+      recoWidget.hidden = true;
+      return;
+    }
+    const categoryName = topEntry[0];
+    const excludeIds = new Set(data.map((row) => row.place_id));
+
+    recoWidget.hidden = false;
+    const displayName = (user.email || '').split('@')[0];
+    recoKicker.textContent = `${displayName}님을 위한 추천`;
+    recoTitle.textContent = `${categoryName} 맛집, 이런 곳 어때요?`;
+    window.MisikEmptyState.render(recoGrid, '추천 맛집을 불러오는 중…', 'loading');
+
+    try {
+      const result = await kakaoFetch(KAKAO_KEYWORD_URL, {
+        query: categoryName,
+        x: DEFAULT_COORD.x,
+        y: DEFAULT_COORD.y,
+        radius: DEFAULT_RADIUS_M,
+        size: 15,
+        sort: 'accuracy'
+      });
+      const filtered = (result.documents || []).filter((doc) => !excludeIds.has(doc.id)).slice(0, 5);
+      renderResults(filtered, recoGrid);
+    } catch (err) {
+      console.error('[kakao-search] 맞춤 추천 검색 실패', err);
+      window.MisikEmptyState.render(recoGrid, '추천을 불러오지 못했습니다.', 'error');
+    }
+  }
+
+  // 로그인 상태가 처음 확인된 시점(비로그인 포함, misik:auth-change는 항상 한 번은 쏜다)에
+  // 랭킹을 한 번 불러오고, 이후 로그인/로그아웃이 바뀔 때마다 맞춤 추천을 다시 계산한다.
+  let rankingLoaded = false;
+  document.addEventListener('misik:auth-change', () => {
+    if (!rankingLoaded) {
+      rankingLoaded = true;
+      loadPopularPlaces();
+    }
+    loadPersonalRecommendation();
+  });
 
   // ---------- 렌더링 유틸 ----------
   function escapeHTML(str) {
