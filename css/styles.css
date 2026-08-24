@@ -524,3 +524,22 @@ body.modal-open { overflow: hidden; }
 .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 
 .wordcloud-canvas { width: 100%; max-width: 100%; min-height: 150px; display: block; }
+
+/* ---------- 맛집주머니 (mypage.html) ---------- */
+.bag-card { position: relative; cursor: default; }
+.bag-card:hover { transform: none; }
+.bag-card .rcard-name { padding-right: 30px; }
+
+.bag-card-remove {
+  position: absolute; top: var(--space-4); right: var(--space-4);
+  width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+  background: none; border: 1px solid var(--border); border-radius: 50%; cursor: pointer;
+  color: var(--text-secondary); transition: var(--transition-fast);
+}
+.bag-card-remove:hover { color: var(--sentiment-neg); border-color: var(--sentiment-neg); background: var(--bg-soft); }
+.bag-card-remove:disabled { opacity: 0.5; cursor: default; }
+
+.bag-empty {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4);
+  padding: var(--space-6) 0; color: var(--text-body); font-size: 14px;
+}

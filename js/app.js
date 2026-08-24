@@ -8,6 +8,16 @@ function scrollToTab(name) {
 }
 
 navBtns.forEach(btn => btn.addEventListener('click', () => scrollToTab(btn.dataset.tab)));
+
+// 로그인했을 때만 상단에 "맛집주머니" 버튼(mypage.html로 이동)을 보여준다.
+// auth.js가 세션 확인/로그인/로그아웃마다 쏘는 misik:auth-change 이벤트를 구독한다.
+const bagBtn = document.getElementById('bagBtn');
+function updateBagButton() {
+  if (!bagBtn) return;
+  bagBtn.hidden = !(window.MisikAuth && window.MisikAuth.isLoggedIn());
+}
+document.addEventListener('misik:auth-change', updateBagButton);
+updateBagButton();
 document.getElementById('logoLink').addEventListener('click', (e) => {
   e.preventDefault();
   scrollToTab('search');
