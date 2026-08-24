@@ -1,5 +1,7 @@
 // ---------- Nav ----------
-const navBtns = document.querySelectorAll('.side-nav-btn');
+// [data-tab]는 데스크톱 사이드바 버튼(.side-nav-btn)과 모바일 하단 탭바 버튼
+// (.bottom-tab-btn, index.html 맨 아래) 둘 다를 가리킨다 — 같은 스크롤 이동/활성 표시 로직을 공유한다.
+const navBtns = document.querySelectorAll('[data-tab]');
 const tabPanels = document.querySelectorAll('.tab-panel');
 
 function scrollToTab(name) {

@@ -91,6 +91,26 @@
   <span>Search · Trust · Archive · Personalize</span>
 </footer>
 
+<!-- 모바일 전용 하단 탭바. mypage.html은 app.js를 안 불러오므로 활성 표시는 정적으로 고정한다. -->
+<nav class="bottom-tabbar">
+  <a class="bottom-tab-btn" href="index.html#tab-search">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 L21 21" stroke-linecap="round"/><path d="M10.5 7.5 v6 M7.5 10.5 h6" stroke-linecap="round"/></svg>
+    <span>맛집 담기</span>
+  </a>
+  <a class="bottom-tab-btn active" href="mypage.html">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 8 L8.5 4 h7 L17 8" stroke-linejoin="round"/><path d="M5.5 8 h13 l-1.2 11.2a2 2 0 0 1-2 1.8H8.7a2 2 0 0 1-2-1.8Z" stroke-linejoin="round"/></svg>
+    <span>맛집주머니</span>
+  </a>
+  <a class="bottom-tab-btn" href="index.html#tab-archive">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="7" width="17" height="13" rx="1"/><path d="M3.5 7 L6 3.5 H18 L20.5 7" /><path d="M10 11.5 H14" stroke-linecap="round"/></svg>
+    <span>내 기록</span>
+  </a>
+  <a class="bottom-tab-btn" href="index.html#tab-personalize">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 v3 M12 18 v3 M3 12 h3 M18 12 h3 M5.6 5.6 l2.1 2.1 M16.3 16.3 l2.1 2.1 M18.4 5.6 l-2.1 2.1 M7.7 16.3 l-2.1 2.1"/><circle cx="12" cy="12" r="3.2"/></svg>
+    <span>내 취향</span>
+  </a>
+</nav>
+
 <script src="js/theme.js"></script>
 <script src="js/toast.js"></script>
 <script src="js/empty-state.js"></script>

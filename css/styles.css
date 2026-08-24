@@ -151,9 +151,9 @@ a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visib
     scroll-snap-align: start;
   }
   .logo { font-size: 16px; padding-left: 0; }
-  .side-nav { flex-direction: row; gap: 4px; }
-  .side-nav-btn { flex-direction: column; gap: var(--space-1); width: auto; padding: 6px 10px; font-size: 11px; border-left: none; border-bottom: 2px solid transparent; border-radius: var(--radius-md); }
-  .side-nav-btn.active { border-bottom-color: var(--accent); }
+  /* 모바일에서는 상단 아이콘 줄 대신 하단 고정 탭바(.bottom-tabbar)로 이동을 처리한다 —
+     첫 화면 콘텐츠가 더 일찍 시작되도록 위쪽 내비게이션 자리를 비운다. */
+  .side-nav { display: none; }
 }
 
 /* ---------- Auth ---------- */
@@ -190,6 +190,8 @@ a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visib
     position: static; width: 100%; justify-content: center;
     padding: 10px 20px; border-bottom: 1px solid var(--border);
   }
+  /* 하단 탭바에 이미 맛집주머니로 가는 항목이 있으니, 모바일에서는 중복 노출하지 않는다. */
+  #bagBtn { display: none; }
 }
 
 .auth-modal-card { width: min(400px, 100%); }
@@ -219,7 +221,32 @@ footer {
 @media (max-width: 760px) {
   .app-main { margin-left: 0; }
   footer { margin-left: 0; padding: 20px; }
+  /* 하단 고정 탭바(.bottom-tabbar)에 가려지지 않도록 페이지 끝에 여백을 둔다. */
+  body { padding-bottom: 66px; }
 }
+
+/* ---------- Bottom tab bar (모바일 전용 — index.html, mypage.html) ---------- */
+.bottom-tabbar { display: none; }
+
+@media (max-width: 760px) {
+  .bottom-tabbar {
+    display: flex;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 150;
+    background: var(--bg); border-top: 1px solid var(--border);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+}
+
+.bottom-tab-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; padding: 10px 4px;
+  background: none; border: none; cursor: pointer;
+  font-family: var(--sans); font-size: 10.5px; font-weight: 600; color: var(--text-secondary);
+  transition: var(--transition-fast);
+}
+.bottom-tab-btn svg { flex-shrink: 0; }
+.bottom-tab-btn:hover { color: var(--text); }
+.bottom-tab-btn.active { color: var(--accent); background: var(--bg-soft); }
 
 .tab-panel {
   display: flex; flex-direction: column; justify-content: center;
