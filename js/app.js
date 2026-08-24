@@ -145,8 +145,7 @@ const WORDS = [
   { w: '신선한', s: 17 }, { w: '혼밥', s: 15 }, { w: '조용한', s: 16 }, { w: '뷰맛집', s: 14 },
 ];
 
-// 기록이 없으면 DEFAULT_CATEGORY_DIST로 폴백 — 도넛 차트뿐 아니라 맛집 추천 탭
-// (js/kakao-search.js)도 이 함수로 "가장 많이 방문한 카테고리"를 가져다 쓴다.
+// 기록이 없으면 DEFAULT_CATEGORY_DIST로 폴백 — 내 취향 탭의 도넛 차트/통계에서 쓴다.
 function categoryDistribution() {
   const list = loadArchive();
   if (!list.length) return { ...DEFAULT_CATEGORY_DIST };
