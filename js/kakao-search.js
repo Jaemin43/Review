@@ -227,8 +227,9 @@
   // 전체를 집계해 "가게 이름 + 담긴 횟수"만 돌려준다(누가 담았는지는 절대 나오지 않음).
   // 로그인 여부와 무관하게 누구나 볼 수 있는 공개 데이터라 로그인 없이도 호출한다.
   function rankingItemHTML(row, idx) {
+    const hasLocation = row.place_id != null && row.lat != null && row.lng != null;
     return `
-      <li class="ranking-item">
+      <li class="ranking-item"${hasLocation ? ` tabindex="0" data-place-id="${escapeHTML(row.place_id)}" data-lat="${escapeHTML(row.lat)}" data-lng="${escapeHTML(row.lng)}"` : ''}>
         <span class="rank-num">${idx + 1}</span>
         <span class="rank-name">${escapeHTML(row.place_name)}</span>
         <span class="rank-count">${escapeHTML(row.save_count)}번 담김</span>
@@ -255,6 +256,18 @@
     }
     rankingList.innerHTML = `<ol class="ranking-list">${data.map(rankingItemHTML).join('')}</ol>`;
   }
+
+  // 랭킹 항목 클릭 → 리뷰 열기 (openReview는 아래에 정의되지만 함수 선언이라 호이스팅됨)
+  document.addEventListener('click', (e) => {
+    const item = e.target.closest('.ranking-item[data-place-id]');
+    if (!item) return;
+    const placeId = item.getAttribute('data-place-id');
+    const name = item.querySelector('.rank-name') ? item.querySelector('.rank-name').textContent : '';
+    const lat = item.getAttribute('data-lat');
+    const lng = item.getAttribute('data-lng');
+    if (!placeId || !name || !lat || !lng) return;
+    openReview(placeId, name, lng, lat);
+  });
 
   // ---------- 홈 위젯 2: 맞춤 추천 (내가 담은 가게 기반) ----------
   // 로그인한 사용자가 담은 가게들(saved_places) 중 가장 잦은 카테고리를 찾아, 그
@@ -467,7 +480,7 @@
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
     if (e.target.closest('button, a')) return;
-    const card = e.target.closest('.rcard');
+    const card = e.target.closest('.rcard, .ranking-item[data-place-id]');
     if (!card) return;
     e.preventDefault();
     card.click();

@@ -34,6 +34,10 @@
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 v3 M12 18 v3 M3 12 h3 M18 12 h3 M5.6 5.6 l2.1 2.1 M16.3 16.3 l2.1 2.1 M18.4 5.6 l-2.1 2.1 M7.7 16.3 l-2.1 2.1"/><circle cx="12" cy="12" r="3.2"/></svg>
       <span>내 취향</span>
     </button>
+    <a class="side-nav-btn" href="mypage.html">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 8 L8.5 4 h7 L17 8" stroke-linejoin="round"/><path d="M5.5 8 h13 l-1.2 11.2a2 2 0 0 1-2 1.8H8.7a2 2 0 0 1-2-1.8Z" stroke-linejoin="round"/></svg>
+      <span>맛집주머니</span>
+    </a>
   </nav>
 </aside>
 
@@ -42,7 +46,6 @@
     <svg class="theme-toggle-icon theme-toggle-icon--sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.5M12 19v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2.5 12h2.5M19 12h2.5M4.2 19.8l1.8-1.8M18 6l1.8-1.8" stroke-linecap="round"/></svg>
     <svg class="theme-toggle-icon theme-toggle-icon--moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z" stroke-linejoin="round"/></svg>
   </button>
-  <a class="auth-btn ghost" id="bagBtn" href="mypage.html" hidden>맛집주머니</a>
   <button class="auth-btn" id="authOpenBtn">로그인</button>
   <div class="auth-user" id="authUserBox" hidden>
     <span id="authUserName"></span>
@@ -65,24 +68,26 @@
       <div class="panel-box">
         <div class="archive-grid">
           <div>
+            <h2 class="panel-heading">새 기록 추가</h2>
             <div class="field">
-              <label for="acName">가게명</label>
-              <input type="text" id="acName" placeholder="예: 온기당" />
+              <label for="acName">가게명 <span class="field-required" aria-hidden="true">*</span></label>
+              <input type="text" id="acName" placeholder="예: 온기당" required minlength="2" aria-describedby="acNameError" />
+              <p class="field-error" id="acNameError" hidden></p>
             </div>
             <div class="field">
               <label for="acDate">방문일</label>
               <input type="date" id="acDate" />
             </div>
             <div class="field">
-              <label for="acCategory">카테고리</label>
-              <select id="acCategory">
-                <option value="한식">한식</option>
-                <option value="일식">일식</option>
-                <option value="양식">양식</option>
-                <option value="카페">카페</option>
-                <option value="중식">중식</option>
-                <option value="분식">분식</option>
-              </select>
+              <label>카테고리</label>
+              <div class="chip-group" id="acCategoryChips" role="group" aria-label="카테고리 선택">
+                <button type="button" class="chip active" data-category="한식">한식</button>
+                <button type="button" class="chip" data-category="일식">일식</button>
+                <button type="button" class="chip" data-category="양식">양식</button>
+                <button type="button" class="chip" data-category="카페">카페</button>
+                <button type="button" class="chip" data-category="중식">중식</button>
+                <button type="button" class="chip" data-category="분식">분식</button>
+              </div>
             </div>
             <div class="field">
               <label>별점</label>
@@ -102,11 +107,25 @@
               <label for="acNote">한줄평</label>
               <textarea id="acNote" placeholder="어떤 점이 좋았나요?"></textarea>
             </div>
-            <button class="btn" id="acSubmit">기록 추가</button>
+            <button class="btn" id="acSubmit" disabled>기록 추가</button>
             <button class="btn ghost" id="acClear" style="margin-left:8px;">전체 초기화</button>
-            <p class="field-hint">기록은 이 브라우저에 저장됩니다.</p>
+            <p class="field-hint">
+              기록은 이 브라우저에만 저장돼요. 다른 기기에서는 보이지 않고, 브라우저 데이터를 지우면 함께 사라질 수 있어요.
+              <button type="button" class="field-hint-link" id="acLoginPrompt">로그인하면 안전하게 보관할 수 있어요 →</button>
+            </p>
           </div>
-          <div class="archive-cards" id="archiveCards"></div>
+          <div>
+            <div class="archive-cards-head">
+              <h2 class="panel-heading">최근 기록</h2>
+              <select id="acSort" class="sort-select" aria-label="정렬 기준">
+                <option value="recent">최신순</option>
+                <option value="oldest">오래된순</option>
+                <option value="starsDesc">별점 높은순</option>
+                <option value="starsAsc">별점 낮은순</option>
+              </select>
+            </div>
+            <div class="archive-cards" id="archiveCards"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -127,7 +146,7 @@
         </div>
         <div class="viz-box">
           <div class="viz-title">자주 등장한 키워드</div>
-          <canvas class="wordcloud-canvas" id="wordcloud"></canvas>
+          <div id="wordcloudWrap"><canvas class="wordcloud-canvas" id="wordcloud"></canvas></div>
         </div>
       </div>
     </div>
@@ -162,7 +181,7 @@
 
 <footer>
   <span>© 2026 MISIK</span>
-  <span>Search · Trust · Archive · Personalize</span>
+  <span>맛집 담기 · 맛집주머니 · 내 기록 · 내 취향</span>
 </footer>
 
 <!-- 모바일 전용 하단 탭바. data-tab 3개는 js/app.js의 스크롤 이동/활성 표시 로직을 그대로 탄다. -->

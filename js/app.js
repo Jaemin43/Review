@@ -11,15 +11,6 @@ function scrollToTab(name) {
 
 navBtns.forEach(btn => btn.addEventListener('click', () => scrollToTab(btn.dataset.tab)));
 
-// 로그인했을 때만 상단에 "맛집주머니" 버튼(mypage.html로 이동)을 보여준다.
-// auth.js가 세션 확인/로그인/로그아웃마다 쏘는 misik:auth-change 이벤트를 구독한다.
-const bagBtn = document.getElementById('bagBtn');
-function updateBagButton() {
-  if (!bagBtn) return;
-  bagBtn.hidden = !(window.MisikAuth && window.MisikAuth.isLoggedIn());
-}
-document.addEventListener('misik:auth-change', updateBagButton);
-updateBagButton();
 document.getElementById('logoLink').addEventListener('click', (e) => {
   e.preventDefault();
   scrollToTab('search');
@@ -56,8 +47,15 @@ const STORAGE_KEY = 'misikArchiveDemo';
 const archiveCards = document.getElementById('archiveCards');
 const starPicker = document.getElementById('starPicker');
 const acPhoto = document.getElementById('acPhoto');
+const acName = document.getElementById('acName');
+const acNameError = document.getElementById('acNameError');
+const acSubmit = document.getElementById('acSubmit');
+const acCategoryChips = document.getElementById('acCategoryChips');
+const acSort = document.getElementById('acSort');
+const acLoginPrompt = document.getElementById('acLoginPrompt');
 let selectedStars = 0;
 let selectedPhoto = null;
+let selectedCategory = '한식';
 
 starPicker.addEventListener('click', (e) => {
   const btn = e.target.closest('button');
@@ -74,6 +72,28 @@ acPhoto.addEventListener('change', () => {
   reader.readAsDataURL(file);
 });
 
+// 카테고리 칩 — <select> 대신 전체 옵션을 한눈에 펼쳐 인지 부담을 줄인다.
+acCategoryChips.addEventListener('click', (e) => {
+  const chip = e.target.closest('.chip');
+  if (!chip) return;
+  selectedCategory = chip.dataset.category;
+  [...acCategoryChips.children].forEach(c => c.classList.toggle('active', c === chip));
+});
+
+// 가게명 실시간 유효성 검사 — 2자 미만이면 인라인 에러를 보여주고, 유효해질 때까지 제출을 막는다.
+function validateName() {
+  const value = acName.value.trim();
+  const valid = value.length >= 2;
+  acNameError.hidden = valid || value.length === 0;
+  acName.setAttribute('aria-invalid', String(!valid && value.length > 0));
+  acSubmit.disabled = !valid;
+  return valid;
+}
+
+acName.addEventListener('input', validateName);
+acNameError.textContent = '가게 이름을 2자 이상 입력해주세요.';
+validateName();
+
 function loadArchive() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
   catch { return []; }
@@ -84,10 +104,20 @@ function saveArchive(list) {
   catch { /* storage full — skip photo on next save */ }
 }
 
+function sortedArchive(list) {
+  const sorted = list.slice();
+  switch (acSort ? acSort.value : 'recent') {
+    case 'oldest': return sorted;
+    case 'starsDesc': return sorted.sort((a, b) => b.stars - a.stars);
+    case 'starsAsc': return sorted.sort((a, b) => a.stars - b.stars);
+    default: return sorted.reverse(); // 최신순
+  }
+}
+
 function renderArchive() {
   const list = loadArchive();
   archiveCards.classList.toggle('has-items', list.length > 0);
-  archiveCards.innerHTML = list.length ? list.slice().reverse().map(item => `
+  archiveCards.innerHTML = list.length ? sortedArchive(list).map(item => `
     <div class="timeline-item">
       <span class="timeline-dot"></span>
       <div class="timeline-content">
@@ -106,13 +136,12 @@ function renderArchive() {
   renderPersonalize();
 }
 
-document.getElementById('acSubmit').addEventListener('click', () => {
-  const name = document.getElementById('acName').value.trim();
-  if (!name) { document.getElementById('acName').focus(); return; }
+acSubmit.addEventListener('click', () => {
+  if (!validateName()) { acName.focus(); return; }
   const item = {
-    name,
+    name: acName.value.trim(),
     date: document.getElementById('acDate').value,
-    category: document.getElementById('acCategory').value,
+    category: selectedCategory,
     stars: selectedStars || 3,
     note: document.getElementById('acNote').value.trim(),
     photo: selectedPhoto,
@@ -121,21 +150,32 @@ document.getElementById('acSubmit').addEventListener('click', () => {
   list.push(item);
   saveArchive(list);
 
-  document.getElementById('acName').value = '';
+  acName.value = '';
   document.getElementById('acDate').value = '';
   document.getElementById('acNote').value = '';
   acPhoto.value = '';
   selectedPhoto = null;
   selectedStars = 0;
   [...starPicker.children].forEach(b => b.classList.remove('filled'));
+  validateName();
 
   renderArchive();
+  if (window.MisikToast) window.MisikToast.show('기록이 이 브라우저에 저장되었습니다.');
 });
 
 document.getElementById('acClear').addEventListener('click', () => {
   localStorage.removeItem(STORAGE_KEY);
   renderArchive();
+  if (window.MisikToast) window.MisikToast.show('기록을 모두 지웠습니다.');
 });
+
+if (acSort) acSort.addEventListener('change', renderArchive);
+
+if (acLoginPrompt) {
+  acLoginPrompt.addEventListener('click', () => {
+    if (window.MisikAuth && window.MisikAuth.promptLogin) window.MisikAuth.promptLogin();
+  });
+}
 
 // ---------- Personalize ----------
 const DEFAULT_CATEGORY_DIST = { '한식': 4, '일식': 2, '카페': 3, '양식': 2, '중식': 1, '분식': 1 };
@@ -211,8 +251,16 @@ function renderDonut() {
 }
 
 function renderWordcloud() {
+  const wrap = document.getElementById('wordcloudWrap');
+  if (!wrap || !window.MisikWordCloud) return;
+
+  if (!loadArchive().length) {
+    window.MisikEmptyState.render(wrap, '등록된 키워드가 없습니다. 기록을 남기면 자주 쓰는 표현을 모아볼게요.', 'empty');
+    return;
+  }
+
+  wrap.innerHTML = '<canvas class="wordcloud-canvas" id="wordcloud"></canvas>';
   const canvas = document.getElementById('wordcloud');
-  if (!canvas || !window.MisikWordCloud) return;
   const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
   const secondary = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim();
   window.MisikWordCloud.render(
