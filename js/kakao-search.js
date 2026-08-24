@@ -53,7 +53,7 @@
   ];
   const REGION_COORD = REGIONS.reduce((acc, r) => { acc[r.name] = { x: r.x, y: r.y }; return acc; }, {});
 
-  const SAVE_KEY = 'misikSavedPlaces'; // 기존 misikArchiveDemo와 별개의 저장소
+  const SAVED_TABLE = 'saved_places'; // sql/saved_places.sql로 생성하는 Supabase 테이블
   const DEBOUNCE_MS = 300;
 
   // ---------- 카테고리 아이콘 (대표 썸네일 대체) ----------
@@ -120,40 +120,83 @@
   const categorySelect = document.getElementById('ksCategory');
   const resultGrid = document.getElementById('ksResultGrid');
 
-  // ---------- localStorage: 담은 맛집 ----------
-  function loadSaved() {
-    try {
-      const raw = localStorage.getItem(SAVE_KEY);
-      const list = raw ? JSON.parse(raw) : [];
-      return Array.isArray(list) ? list : [];
-    } catch (e) {
-      return [];
-    }
-  }
+  // ---------- 담은 맛집 (Supabase saved_places, 로그인 사용자별) ----------
+  // 실제 담김 여부는 Supabase에 있지만, 카드 렌더링은 동기적으로 일어나야 하므로
+  // 로그인한 사용자의 place_id 목록을 이 Set에 캐시해두고 렌더링/버튼 표시에 쓴다.
+  let savedPlaceIds = new Set();
 
-  function persistSaved(list) {
-    try {
-      localStorage.setItem(SAVE_KEY, JSON.stringify(list));
-    } catch (e) {
-      console.error('[kakao-search] localStorage 저장 실패', e);
-    }
+  function getSupabaseClient() {
+    return window.MisikAuth && window.MisikAuth.getClient ? window.MisikAuth.getClient() : null;
   }
 
   function isSaved(id) {
-    return loadSaved().some((p) => p.id === id);
+    return savedPlaceIds.has(id);
   }
 
-  // 담기/해제 토글. 반환값: true = 방금 저장됨, false = 방금 해제됨.
-  function toggleSave(place) {
-    const list = loadSaved();
-    const idx = list.findIndex((p) => p.id === place.id);
-    if (idx >= 0) {
-      list.splice(idx, 1);
-      persistSaved(list);
+  // 이미 그려져 있는 카드들의 담기 버튼을 savedPlaceIds 기준으로 다시 칠한다.
+  // 로그인 상태 확인이나 목록 조회가 카드 렌더링보다 늦게 끝나는 경우를 보정하기 위함.
+  function syncSaveButtons() {
+    document.querySelectorAll('[data-save-id]').forEach((btn) => {
+      const saved = isSaved(btn.getAttribute('data-save-id'));
+      btn.textContent = saved ? '담음 ✓' : '담기';
+      btn.classList.toggle('saved', saved);
+    });
+  }
+
+  // 로그인 상태가 바뀔 때마다(최초 세션 확인 포함) 이 사용자가 담아둔 가게 id 목록을 새로 받아온다.
+  async function refreshSavedIds() {
+    const loggedIn = window.MisikAuth && window.MisikAuth.isLoggedIn();
+    if (!loggedIn) {
+      savedPlaceIds = new Set();
+      syncSaveButtons();
+      return;
+    }
+    const client = getSupabaseClient();
+    const user = window.MisikAuth.getUser();
+    if (!client || !user) return;
+
+    const { data, error } = await client.from(SAVED_TABLE).select('place_id').eq('user_id', user.id);
+    if (error) {
+      console.error('[kakao-search] 담은 가게 목록 조회 실패', error);
+      return;
+    }
+    savedPlaceIds = new Set((data || []).map((row) => row.place_id));
+    syncSaveButtons();
+  }
+
+  document.addEventListener('misik:auth-change', refreshSavedIds);
+  refreshSavedIds();
+
+  // 담기/해제 토글. Supabase에 insert/delete 하고, 성공하면 캐시(savedPlaceIds)도 맞춰준다.
+  async function toggleSave(place) {
+    const client = getSupabaseClient();
+    const user = window.MisikAuth.getUser();
+    if (!client || !user) return isSaved(place.place_id);
+
+    if (isSaved(place.place_id)) {
+      const { error } = await client
+        .from(SAVED_TABLE)
+        .delete()
+        .eq('user_id', user.id)
+        .eq('place_id', place.place_id);
+      if (error) throw error;
+      savedPlaceIds.delete(place.place_id);
       return false;
     }
-    list.push(place);
-    persistSaved(list);
+
+    const { error } = await client.from(SAVED_TABLE).insert({
+      user_id: user.id,
+      place_id: place.place_id,
+      place_name: place.place_name,
+      category: place.category,
+      address: place.address,
+      lat: place.lat,
+      lng: place.lng,
+    });
+    // 23505 = unique_violation. 이미 담겨 있는데 중복 클릭 등으로 다시 insert된 경우이므로
+    // 에러로 취급하지 않고 "담김" 상태로 정리한다.
+    if (error && error.code !== '23505') throw error;
+    savedPlaceIds.add(place.place_id);
     return true;
   }
 
@@ -298,25 +341,40 @@
   });
 
   // 담기/해제 버튼 (이벤트 위임, document 기준 — 위와 같은 이유)
-  document.addEventListener('click', (e) => {
+  document.addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-save-id]');
     if (!btn) return;
     const card = btn.closest('.rcard');
     if (!card) return;
 
+    if (!window.MisikAuth || !window.MisikAuth.isLoggedIn()) {
+      if (window.MisikAuth && window.MisikAuth.promptLogin) {
+        window.MisikAuth.promptLogin('로그인하면 담을 수 있어요');
+      }
+      return;
+    }
+
     const descs = card.querySelectorAll('.rcard-desc');
     const place = {
-      id: btn.getAttribute('data-save-id'),
-      name: card.querySelector('.rcard-name') ? card.querySelector('.rcard-name').textContent : '',
+      place_id: btn.getAttribute('data-save-id'),
+      place_name: card.querySelector('.rcard-name') ? card.querySelector('.rcard-name').textContent : '',
       category: card.querySelector('.rcard-meta') ? card.querySelector('.rcard-meta').textContent : '',
       address: descs[0] ? descs[0].textContent : '',
-      phone: descs[1] ? descs[1].textContent : '',
-      place_url: card.querySelector('a.btn.ghost') ? card.querySelector('a.btn.ghost').getAttribute('href') : ''
+      lat: card.getAttribute('data-y') ? Number(card.getAttribute('data-y')) : null,
+      lng: card.getAttribute('data-x') ? Number(card.getAttribute('data-x')) : null,
     };
 
-    const nowSaved = toggleSave(place);
-    btn.textContent = nowSaved ? '담음 ✓' : '담기';
-    btn.classList.toggle('saved', nowSaved);
+    btn.disabled = true;
+    try {
+      const nowSaved = await toggleSave(place);
+      btn.textContent = nowSaved ? '담음 ✓' : '담기';
+      btn.classList.toggle('saved', nowSaved);
+    } catch (err) {
+      console.error('[kakao-search] 담기 처리 실패', err);
+      if (window.MisikToast) window.MisikToast.show('담기 처리 중 오류가 발생했습니다.');
+    } finally {
+      btn.disabled = false;
+    }
   });
 
   // ---------- 구글 리뷰 보기 ----------

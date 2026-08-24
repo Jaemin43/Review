@@ -26,6 +26,10 @@ window.MisikAuth = {
   isLoggedIn: () => !!currentUser,
   onChange: (cb) => { authListeners.push(cb); },
   signOut: () => supabaseClient.auth.signOut(),
+  // 담기 기능 등 다른 기능이 Supabase 쿼리를 직접 날려야 할 때 쓰는 클라이언트 접근자.
+  getClient: () => supabaseClient,
+  // 로그인이 필요한 동작을 로그인 안 한 사람이 시도했을 때: 안내 문구와 함께 로그인 모달을 연다.
+  promptLogin: (message) => openAuthModal(message),
 };
 
 // ---------- UI wiring ----------
@@ -59,9 +63,9 @@ function setAuthBusy(busy) {
   authSignUpBtn.disabled = busy;
 }
 
-function openAuthModal() {
+function openAuthModal(message) {
   authForm.reset();
-  setAuthMessage('');
+  setAuthMessage(message || '');
   authModalOverlay.classList.add('open');
   document.body.classList.add('modal-open');
   authEmail.focus();
@@ -157,7 +161,7 @@ authSignUpBtn.addEventListener('click', async () => {
   else setAuthMessage(result.message, 'error');
 });
 
-authOpenBtn.addEventListener('click', openAuthModal);
+authOpenBtn.addEventListener('click', () => openAuthModal());
 document.getElementById('authModalClose').addEventListener('click', closeAuthModal);
 authModalOverlay.addEventListener('click', (e) => { if (e.target === authModalOverlay) closeAuthModal(); });
 document.addEventListener('keydown', (e) => {
