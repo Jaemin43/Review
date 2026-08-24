@@ -68,7 +68,10 @@ function openAuthModal(message) {
   setAuthMessage(message || '');
   authModalOverlay.classList.add('open');
   document.body.classList.add('modal-open');
-  authEmail.focus();
+  // 데스크톱에서만 자동 포커스 — 모바일에서는 모달이 뜨자마자 키보드가 올라오는 걸 막는다.
+  if (window.matchMedia && window.matchMedia('(min-width: 761px)').matches) {
+    authEmail.focus();
+  }
 }
 
 function closeAuthModal() {
@@ -138,7 +141,7 @@ authForm.addEventListener('submit', async (e) => {
   if (!email || !password) { setAuthMessage('이메일과 비밀번호를 입력해주세요.', 'error'); return; }
 
   setAuthBusy(true);
-  setAuthMessage('로그인 중...');
+  setAuthMessage('로그인 중…');
   const result = await handleSignIn(email, password);
   setAuthBusy(false);
 
@@ -153,7 +156,7 @@ authSignUpBtn.addEventListener('click', async () => {
   if (password.length < 6) { setAuthMessage('비밀번호는 6자 이상이어야 합니다.', 'error'); return; }
 
   setAuthBusy(true);
-  setAuthMessage('가입 처리 중...');
+  setAuthMessage('가입 처리 중…');
   const result = await handleSignUp(email, password);
   setAuthBusy(false);
 

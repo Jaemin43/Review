@@ -121,7 +121,7 @@ function renderArchive() {
     <div class="timeline-item">
       <span class="timeline-dot"></span>
       <div class="timeline-content">
-        ${item.photo ? `<img class="ac-thumb" src="${item.photo}" alt="${item.name}" />` : '<div class="ac-thumb"></div>'}
+        ${item.photo ? `<img class="ac-thumb" src="${item.photo}" alt="${item.name}" width="56" height="56" />` : '<div class="ac-thumb"></div>'}
         <div class="ac-body">
           <div class="ac-top">
             <span class="ac-name">${item.name}</span>
@@ -164,6 +164,8 @@ acSubmit.addEventListener('click', () => {
 });
 
 document.getElementById('acClear').addEventListener('click', () => {
+  if (!loadArchive().length) return;
+  if (!window.confirm('이 브라우저에 저장된 기록을 모두 삭제할까요? 되돌릴 수 없습니다.')) return;
   localStorage.removeItem(STORAGE_KEY);
   renderArchive();
   if (window.MisikToast) window.MisikToast.show('기록을 모두 지웠습니다.');

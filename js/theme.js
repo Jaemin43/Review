@@ -21,6 +21,8 @@
 
   function apply(theme, persist) {
     document.documentElement.setAttribute('data-theme', theme);
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', theme === 'dark' ? '#191919' : '#FFFFFF');
     if (persist) {
       try { localStorage.setItem(STORAGE_KEY, theme); } catch (e) {}
     }

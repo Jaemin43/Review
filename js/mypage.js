@@ -17,11 +17,12 @@
     }[ch]));
   }
 
+  const dateFormatter = new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
   function formatDate(iso) {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return '날짜 정보 없음';
-    const pad = (n) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())}`;
+    return dateFormatter.format(d);
   }
 
   function googleMapsUrl(row) {
@@ -64,7 +65,7 @@
     return `
       <div class="rcard bag-card" data-row-id="${escapeHTML(row.id)}">
         <button type="button" class="bag-card-remove" data-remove-id="${escapeHTML(row.id)}" aria-label="맛집주머니에서 삭제">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 5 L19 19 M19 5 L5 19" stroke-linecap="round"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 5 L19 19 M19 5 L5 19" stroke-linecap="round"/></svg>
         </button>
         <div class="rcard-name">${escapeHTML(row.place_name)}</div>
         <div class="rcard-meta">${escapeHTML(row.category || '기타')}</div>
@@ -118,6 +119,8 @@
   bagGrid.addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-remove-id]');
     if (!btn) return;
+
+    if (!window.confirm('맛집주머니에서 삭제할까요? 되돌릴 수 없습니다.')) return;
 
     const client = getSupabaseClient();
     if (!client) return;

@@ -229,7 +229,7 @@
   function rankingItemHTML(row, idx) {
     const hasLocation = row.place_id != null && row.lat != null && row.lng != null;
     return `
-      <li class="ranking-item"${hasLocation ? ` tabindex="0" data-place-id="${escapeHTML(row.place_id)}" data-lat="${escapeHTML(row.lat)}" data-lng="${escapeHTML(row.lng)}"` : ''}>
+      <li class="ranking-item"${hasLocation ? ` tabindex="0" role="button" aria-label="${escapeHTML(row.place_name)} 리뷰 보기" data-place-id="${escapeHTML(row.place_id)}" data-lat="${escapeHTML(row.lat)}" data-lng="${escapeHTML(row.lng)}"` : ''}>
         <span class="rank-num">${idx + 1}</span>
         <span class="rank-name">${escapeHTML(row.place_name)}</span>
         <span class="rank-count">${escapeHTML(row.save_count)}번 담김</span>
@@ -359,7 +359,7 @@
     const address = doc.road_address_name || doc.address_name || '주소 정보 없음';
     const phone = doc.phone || '전화번호 정보 없음';
     return `
-      <div class="rcard rcard--visual" tabindex="0" data-place-id="${escapeHTML(doc.id)}" data-x="${escapeHTML(doc.x)}" data-y="${escapeHTML(doc.y)}">
+      <div class="rcard rcard--visual" tabindex="0" role="button" aria-label="${escapeHTML(doc.place_name)} 리뷰 보기" data-place-id="${escapeHTML(doc.id)}" data-x="${escapeHTML(doc.x)}" data-y="${escapeHTML(doc.y)}">
         <div class="rcard-icon">${pickIcon(doc)}</div>
         <div class="rcard-name">${escapeHTML(doc.place_name)}</div>
         <div class="rcard-meta">${escapeHTML(category)}</div>
@@ -409,10 +409,23 @@
 
   let requestSeq = 0;
 
+  // 검색어/지역/카테고리 필터를 쿼리 파라미터(?q=&region=&category=)로 URL에 반영해서,
+  // 새로고침하거나 링크를 공유해도 같은 검색 결과를 다시 볼 수 있게 한다.
+  function syncFiltersToURL(query, regionName, categoryCode) {
+    const params = new URLSearchParams(window.location.search);
+    query ? params.set('q', query) : params.delete('q');
+    regionName ? params.set('region', regionName) : params.delete('region');
+    categoryCode ? params.set('category', categoryCode) : params.delete('category');
+    const qs = params.toString();
+    const url = window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash;
+    window.history.replaceState(null, '', url);
+  }
+
   async function runSearch() {
     const query = queryInput.value.trim();
     const regionName = regionSelect.value;
     const categoryCode = categorySelect.value;
+    syncFiltersToURL(query, regionName, categoryCode);
 
     if (!query && !categoryCode && !regionName) {
       renderStatus(INITIAL_MSG, 'empty');
@@ -467,6 +480,19 @@
   }
 
   const debouncedSearch = debounce(runSearch, DEBOUNCE_MS);
+
+  // URL에 이미 필터 파라미터가 있으면(새로고침, 공유 링크 등) 입력값을 채우고 바로 검색한다.
+  (function restoreFiltersFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('q');
+    const region = params.get('region');
+    const category = params.get('category');
+    if (!q && !region && !category) return;
+    if (q) queryInput.value = q;
+    if (region && REGION_COORD[region]) regionSelect.value = region;
+    if (category) categorySelect.value = category;
+    runSearch();
+  })();
 
   queryInput.addEventListener('input', debouncedSearch);
   regionSelect.addEventListener('change', runSearch);
@@ -563,7 +589,7 @@
   reviewOverlay.innerHTML = `
     <div class="modal-card" id="ksReviewCard">
       <button class="modal-close" id="ksReviewClose" aria-label="닫기">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 5 L19 19 M19 5 L5 19" stroke-linecap="round"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 5 L19 19 M19 5 L5 19" stroke-linecap="round"/></svg>
       </button>
       <div class="restaurant-header" id="ksReviewHeader"></div>
       <div class="review-list" id="ksReviewList"></div>
