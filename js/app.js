@@ -179,7 +179,9 @@ if (acLoginPrompt) {
 
 // ---------- Personalize ----------
 const DEFAULT_CATEGORY_DIST = { '한식': 4, '일식': 2, '카페': 3, '양식': 2, '중식': 1, '분식': 1 };
-const DONUT_COLORS = ['#D9730D', '#E03E3E', '#DFAB01', '#0B6E99', '#6940A5', '#64473A'];
+// 첨부 팔레트(연한 하늘색 → 진한 네이비) 기준 — 카테고리별로 밝기 차이가 잘 구분되도록
+// 6단계를 골고루 뽑았다.
+const DONUT_COLORS = ['#C3E7EF', '#8BD6E9', '#45C2DB', '#6090BF', '#0172B0', '#023C85'];
 
 const WORDS = [
   { w: '재방문의사', s: 30 }, { w: '가성비', s: 24 }, { w: '분위기', s: 26 },
